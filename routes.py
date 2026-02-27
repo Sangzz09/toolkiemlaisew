@@ -316,14 +316,14 @@ def game(gcode):
 
     # Kiểm tra nếu có key active và còn hạn
     if not active_key:
-        return redirect(url_for("enter_key", gcode=gcode))
+        return redirect(url_for("main.enter_key", gcode=gcode))
 
     # Kiểm tra key hết hạn
     if active_key["expiresAt"] and active_key["expiresAt"] < time.time():
         # Xóa key hết hạn khỏi active
         del db["active"][username]
         save_db(db)
-        return redirect(url_for("enter_key", gcode=gcode))
+        return redirect(url_for("main.enter_key", gcode=gcode))
 
     game_name_map = {
         "sun": "SunWin",
@@ -423,7 +423,7 @@ def enter_key(gcode):
 
                 save_db(db)
                 # Chuyển hướng về game luôn
-                return redirect(url_for("game", gcode=gcode))
+                return redirect(url_for("main.game", gcode=gcode))
 
     return render_template_string(HTML_ENTER_KEY,
                                   game_name=game_name,
