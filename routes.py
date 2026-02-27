@@ -8,6 +8,7 @@ from templates import *
 from predict import predict, get_formatted_history, load_history, save_history, load_prediction_history, record_prediction, update_prediction_results, HIST, PREDICTION_HISTORY, STATS
 from algorithms import safe_json, normalize, API_SUN, API_HIT, API_SUM, API_B52A, API_B52B, API_LUCK8, API_SICBO, API_789, API_68GB, API_LC79
 import time, json
+from nanoid import generate
 
 bp = Blueprint('main', __name__)
 
