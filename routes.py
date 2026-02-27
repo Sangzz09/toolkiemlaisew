@@ -296,21 +296,32 @@ def deposit():
         session.clear()
         return redirect(url_for("main.login"))
 
+    from sepay_webhook import create_deposit_order, _load as load_pending
+
     error = None
     transfer_content = None
     amount_chosen = None
     balance = db["users"][username].get("balance", 0)
 
     if request.method == "POST":
+        # Tạo đơn mới khi user chọn số tiền
         try:
             amount_chosen = int(request.form.get("amount", 0))
             if amount_chosen < 10000:
                 error = "Số tiền tối thiểu là 10,000đ"
             else:
-                from sepay_webhook import create_deposit_order
                 transfer_content = create_deposit_order(username, amount_chosen)
         except (ValueError, TypeError):
             error = "Số tiền không hợp lệ"
+    else:
+        # GET: kiểm tra xem user có đơn chờ chưa hết hạn không → giữ nguyên
+        pending = load_pending()
+        now = time.time()
+        for key, order in pending.items():
+            if order.get("username") == username and now - order.get("created_at", 0) < 900:
+                transfer_content = key
+                amount_chosen = order.get("amount", 0)
+                break
 
     return render_template_string(
         HTML_DEPOSIT,

@@ -672,9 +672,10 @@ input::placeholder{color:rgba(255,255,255,.3)}
 .cl{color:rgba(255,255,255,.45);font-size:11px;margin-bottom:5px}
 .cv{color:#00ff99;font-size:18px;font-weight:bold;letter-spacing:1.5px;word-break:break-all}
 .warn{background:rgba(255,200,0,.07);border:1px solid rgba(255,200,0,.2);border-radius:9px;padding:12px 14px;font-size:12px;color:rgba(255,215,100,.9);line-height:1.7;margin-bottom:14px}
-.timer{text-align:center;color:rgba(255,255,255,.45);font-size:12px;margin-bottom:12px}
-.btn2{width:100%;padding:11px;background:rgba(255,80,80,.1);border:1px solid rgba(255,80,80,.25);border-radius:9px;color:#ff9090;cursor:pointer;font-size:13px;transition:.2s}
-.btn2:hover{background:rgba(255,80,80,.2)}
+.qrbox{text-align:center;margin-bottom:14px}
+.qrbox img{width:200px;height:200px;border-radius:12px;background:#fff;padding:8px}
+.waiting{text-align:center;color:rgba(255,255,255,.5);font-size:13px;padding:10px 0;margin-bottom:8px}
+.waiting span{color:#00e6b4;font-weight:bold}
 @keyframes popIn{0%{transform:scale(0)}80%{transform:scale(1.15)}100%{transform:scale(1)}}
 </style>
 </head>
@@ -685,7 +686,7 @@ input::placeholder{color:rgba(255,255,255,.3)}
   <div class="ttl">&#128179; Nạp Tiền</div>
   <div class="sub">Thanh toán tự động &middot; Cộng tiền ngay lập tức</div>
   <div class="bal">&#128176; Số dư: <b>{{ "{:,}".format(balance) }}đ</b></div>
-  {% if error %}<div class="err">&#9888;&#65039; {{ error }}</div>{% endif %}
+  {% if error %}<div class="err">&#9888; {{ error }}</div>{% endif %}
 
   {% if not transfer_content %}
   <form method="POST">
@@ -698,7 +699,7 @@ input::placeholder{color:rgba(255,255,255,.3)}
       <button type="button" class="ab" onclick="pick(500000,this)">500,000đ</button>
       <button type="button" class="ab" onclick="pick(1000000,this)">1,000,000đ</button>
     </div>
-    <div class="lbl">&#9999;&#65039; Hoặc nhập số khác</div>
+    <div class="lbl">&#9999; Hoặc nhập số khác</div>
     <input type="number" name="amount" id="amt" placeholder="Tối thiểu 10,000đ" min="10000" step="1000">
     <button type="submit" class="btn">&#128273; Tạo Lệnh Nạp</button>
   </form>
@@ -713,30 +714,32 @@ input::placeholder{color:rgba(255,255,255,.3)}
     <div class="row"><span class="rl">&#128100; Chủ TK</span><span class="rv">TRAN MINH SANG</span></div>
     <div class="row"><span class="rl">&#128176; Số tiền</span><span class="rv hi">{{ "{:,}".format(amount_chosen) }}đ</span></div>
   </div>
+
+  <div class="qrbox">
+    <img src="https://img.vietqr.io/image/MB-0886027767-compact2.png?amount={{ amount_chosen }}&addInfo={{ transfer_content | urlencode }}&accountName=TRAN%20MINH%20SANG" alt="QR Code">
+  </div>
+
   <div class="cbox">
-    <div class="cl">&#9888;&#65039; NỘI DUNG CHUYỂN KHOẢN &mdash; GHI ĐÚNG Y CHANG</div>
+    <div class="cl">&#9888; NỘI DUNG CHUYỂN KHOẢN &mdash; GHI ĐÚNG Y CHANG</div>
     <div class="cv" id="tc">{{ transfer_content }}</div>
     <button class="cp" style="margin-top:9px;padding:5px 16px;font-size:12px" onclick="cp('{{ transfer_content }}',this)">&#128203; Copy nội dung</button>
   </div>
+
   <div class="warn">
-    &#9888;&#65039; <b>Quan trọng:</b><br>
-    &bull; Ghi <b>đúng nội dung</b> trên khi chuyển khoản<br>
-    &bull; Tiền cộng <b>tự động trong vài giây</b> sau khi CK<br>
-    &bull; Lệnh hết hạn sau <b id="cd" style="color:#ffcc44">15:00</b><br>
-    &bull; Sai nội dung &rarr; hệ thống <b>không nhận được</b>
+    &#9888; <b>Quan trọng:</b><br>
+    &bull; Quét QR hoặc CK tay với <b>đúng nội dung</b> trên<br>
+    &bull; Tiền cộng <b>tự động</b> sau khi ngân hàng xử lý<br>
+    &bull; Lệnh hết hạn sau <b id="cd" style="color:#ffcc44">15:00</b>
   </div>
-  <div class="timer">&#9203; Đang chờ giao dịch... tự kiểm tra mỗi 8 giây</div>
-  <form method="POST">
-    <input type="hidden" name="amount" value="{{ amount_chosen }}">
-    <button type="submit" class="btn2">&#128260; Tạo mã mới</button>
-  </form>
+
+  <div class="waiting">&#9203; Đang chờ giao dịch...<br>Xin chờ <span>1-3 phút</span> sau khi chuyển khoản</div>
   {% endif %}
 </div>
 </div>
 <script>
 function pick(v,el){
   document.getElementById('amt').value=v;
-  document.querySelectorAll('.ab').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.ab').forEach(function(b){b.classList.remove('on');});
   el.classList.add('on');
 }
 function cp(txt,btn){
@@ -745,7 +748,7 @@ function cp(txt,btn){
     t.value=txt;document.body.appendChild(t);t.select();
     document.execCommand('copy');document.body.removeChild(t);
   });
-  var o=btn.textContent;btn.textContent='Đã copy!';
+  var o=btn.textContent;btn.textContent='Da copy!';
   setTimeout(function(){btn.textContent=o;},2000);
 }
 {% if transfer_content %}
@@ -764,15 +767,15 @@ setInterval(function(){
       document.getElementById('mainCard').innerHTML=
         '<div style="text-align:center;padding:20px 10px">'+
         '<div style="font-size:64px;margin-bottom:16px;animation:popIn .4s ease">&#9989;</div>'+
-        '<div style="font-size:22px;font-weight:bold;color:#00e6b4;margin-bottom:8px">Nạp Tiền Thành Công!</div>'+
-        '<div style="color:rgba(255,255,255,.6);font-size:14px;margin-bottom:24px">Hệ thống đã tự động cộng tiền vào tài khoản</div>'+
+        '<div style="font-size:22px;font-weight:bold;color:#00e6b4;margin-bottom:8px">Nap Tien Thanh Cong!</div>'+
+        '<div style="color:rgba(255,255,255,.6);font-size:14px;margin-bottom:24px">He thong da tu dong cong tien vao tai khoan</div>'+
         '<div style="background:rgba(0,230,180,.1);border:1px solid rgba(0,230,180,.3);border-radius:14px;padding:20px;margin-bottom:20px">'+
-        '<div style="color:rgba(255,255,255,.5);font-size:12px;margin-bottom:6px">SỐ TIỀN ĐƯỢC CỘNG</div>'+
-        '<div style="font-size:36px;font-weight:bold;color:#00ff99">+'+added.toLocaleString('vi-VN')+'đ</div></div>'+
+        '<div style="color:rgba(255,255,255,.5);font-size:12px;margin-bottom:6px">SO TIEN DUOC CONG</div>'+
+        '<div style="font-size:36px;font-weight:bold;color:#00ff99">+'+added.toLocaleString('vi-VN')+'d</div></div>'+
         '<div style="background:rgba(255,255,255,.05);border-radius:10px;padding:14px;margin-bottom:20px">'+
-        '<div style="color:rgba(255,255,255,.45);font-size:11px;margin-bottom:4px">SỐ DƯ MỚI</div>'+
-        '<div style="font-size:22px;font-weight:bold;color:#00e6b4">'+d.balance.toLocaleString('vi-VN')+'đ</div></div>'+
-        '<a href="/account" style="display:block;padding:14px;background:linear-gradient(135deg,#00e6b4,#00b4d8);border-radius:11px;font-size:16px;font-weight:bold;color:#0a1628;text-decoration:none;text-align:center;margin-bottom:10px">Xem tài khoản</a>'+
+        '<div style="color:rgba(255,255,255,.45);font-size:11px;margin-bottom:4px">SO DU MOI</div>'+
+        '<div style="font-size:22px;font-weight:bold;color:#00e6b4">'+d.balance.toLocaleString('vi-VN')+'d</div></div>'+
+        '<a href="/account" style="display:block;padding:14px;background:linear-gradient(135deg,#00e6b4,#00b4d8);border-radius:11px;font-size:16px;font-weight:bold;color:#0a1628;text-decoration:none;text-align:center;margin-bottom:10px">Xem tai khoan</a>'+
         '<a href="/buy-key" style="display:block;padding:13px;background:rgba(0,230,180,.1);border:1px solid rgba(0,230,180,.3);border-radius:11px;font-size:15px;color:#00e6b4;text-decoration:none;text-align:center">Mua key ngay</a>'+
         '</div>';
     }
