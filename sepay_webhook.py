@@ -1,0 +1,137 @@
+# -*- coding: utf-8 -*-
+# ================== sepay_webhook.py ==================
+# Đặt file này ngang hàng với app.py
+
+import time, json, os, random, string, requests
+from config import load_db, save_db, BOT_TOKEN, ADMIN_ID
+
+# ======= CẤU HÌNH NGÂN HÀNG =======
+BANK_NAME    = "MBBank"
+BANK_ACCOUNT = "0886027767"
+BANK_OWNER   = "TRAN MINH SANG"
+WEBHOOK_SECRET = ""  # Không dùng xác thực
+# ===================================
+
+PENDING_FILE = "pending_deposits_sepay.json"
+
+def _load():
+    if not os.path.exists(PENDING_FILE):
+        return {}
+    try:
+        with open(PENDING_FILE, encoding="utf-8") as f:
+            return json.load(f)
+    except:
+        return {}
+
+def _save(data):
+    with open(PENDING_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+def create_deposit_order(username: str, amount: int) -> str:
+    """Tạo đơn nạp, trả về nội dung CK vd: NAP sang A3K9B"""
+    pending = _load()
+    # Xóa đơn cũ của user
+    for k in [k for k, v in pending.items() if v.get("username") == username]:
+        del pending[k]
+    rand    = ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
+    content = f"NAP {username} {rand}"
+    pending[content] = {"username": username, "amount": amount, "created_at": time.time()}
+    _save(pending)
+    return content
+
+def process_sepay_webhook(payload: dict) -> dict:
+    """
+    Gọi khi SePay POST về /api/sepay-webhook
+    payload mẫu:
+    {
+      "id": 12345,
+      "transferType": "in",
+      "transferAmount": 50000,
+      "content": "NAP sang A3K9B",
+      "gateway": "MBBank",
+      "accountNumber": "0886027767",
+      "transactionDate": "2024-01-15 10:30:00"
+    }
+    """
+    # Chỉ nhận tiền VÀO
+    if payload.get("transferType") != "in":
+        return {"success": True, "message": "ignored"}
+
+    amount   = int(payload.get("transferAmount", 0))
+    content  = (payload.get("content") or payload.get("description") or "").strip()
+    txn_id   = str(payload.get("id", ""))
+    gateway  = payload.get("gateway", "")
+    acct     = payload.get("accountNumber", "")
+    txn_date = payload.get("transactionDate", "")
+
+    if not content or amount <= 0:
+        return {"success": False, "message": "missing content or amount"}
+
+    # Dọn đơn hết hạn (15 phút)
+    pending = _load()
+    now     = time.time()
+    expired = [k for k, v in pending.items() if now - v.get("created_at", 0) > 900]
+    for k in expired:
+        del pending[k]
+    if expired:
+        _save(pending)
+
+    # Tìm đơn khớp nội dung CK
+    matched_key = matched_order = None
+    for key, order in pending.items():
+        if key.upper() in content.upper():
+            matched_key, matched_order = key, order
+            break
+
+    if not matched_order:
+        _notify(f"⚠️ NHẬN {amount:,}đ - KHÔNG KHỚP ĐƠN\n📝 {content}\n🏦 {gateway} | {acct}")
+        return {"success": True, "message": "no matching order"}
+
+    username = matched_order["username"]
+
+    # Chống xử lý trùng
+    db       = load_db()
+    done_ids = [t.get("sepay_txn_id") for t in db.get("transactions", []) if t.get("sepay_txn_id")]
+    if txn_id and txn_id in done_ids:
+        return {"success": True, "message": "already processed"}
+
+    if username not in db["users"]:
+        return {"success": False, "message": f"user {username} not found"}
+
+    # Cộng tiền
+    db["users"][username]["balance"] = db["users"][username].get("balance", 0) + amount
+    db.setdefault("transactions", []).append({
+        "type": "deposit", "username": username, "amount": amount,
+        "time": time.time(), "status": "completed", "method": "sepay_auto",
+        "transfer_content": content, "sepay_txn_id": txn_id
+    })
+    save_db(db)
+
+    # Xóa đơn đã xử lý
+    del pending[matched_key]
+    _save(pending)
+
+    new_balance = db["users"][username]["balance"]
+
+    _notify(
+        f"✅ NẠP TIỀN TỰ ĐỘNG\n\n"
+        f"👤 Tài khoản: {username}\n"
+        f"💰 +{amount:,}đ\n"
+        f"💎 Số dư mới: {new_balance:,}đ\n"
+        f"🏦 {gateway} | {acct}\n"
+        f"📝 {content}\n"
+        f"🔖 TxnID: {txn_id} | {txn_date}"
+    )
+    print(f"[SEPAY] ✅ {username} +{amount:,}đ | TxnID={txn_id}")
+    return {"success": True, "message": f"deposited {amount} for {username}"}
+
+
+def _notify(text: str):
+    try:
+        requests.post(
+            f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+            json={"chat_id": ADMIN_ID, "text": text},
+            timeout=5
+        )
+    except Exception as e:
+        print(f"[SEPAY] Lỗi Telegram: {e}")

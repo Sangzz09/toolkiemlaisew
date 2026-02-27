@@ -284,7 +284,7 @@ def buy_key():
                                   success=success)
 
 
-@bp.route("/deposit")
+@bp.route("/deposit", methods=["GET", "POST"])
 def deposit():
     if "username" not in session:
         return redirect(url_for("main.login"))
@@ -292,12 +292,54 @@ def deposit():
     db = load_db()
     username = session["username"]
 
-    # Kiểm tra nếu user bị khóa
     if username in db.get("blocked_web_login", []):
         session.clear()
         return redirect(url_for("main.login"))
 
-    return render_template_string(HTML_DEPOSIT, username=username)
+    error = None
+    transfer_content = None
+    amount_chosen = None
+    balance = db["users"][username].get("balance", 0)
+
+    if request.method == "POST":
+        try:
+            amount_chosen = int(request.form.get("amount", 0))
+            if amount_chosen < 10000:
+                error = "Số tiền tối thiểu là 10,000đ"
+            else:
+                from sepay_webhook import create_deposit_order
+                transfer_content = create_deposit_order(username, amount_chosen)
+        except (ValueError, TypeError):
+            error = "Số tiền không hợp lệ"
+
+    return render_template_string(
+        HTML_DEPOSIT,
+        username=username,
+        balance=balance,
+        error=error,
+        transfer_content=transfer_content,
+        amount_chosen=amount_chosen,
+    )
+
+
+@bp.route("/api/sepay-webhook", methods=["POST"])
+def sepay_webhook():
+    """SePay gọi endpoint này khi có giao dịch. URL: https://toolkiemlaisew.onrender.com/api/sepay-webhook"""
+    from sepay_webhook import process_sepay_webhook
+    payload = request.get_json(silent=True) or {}
+    result  = process_sepay_webhook(payload)
+    return jsonify(result)
+
+
+@bp.route("/api/balance")
+def api_balance():
+    """Dùng cho JS polling kiểm tra tiền đã vào chưa"""
+    if "username" not in session:
+        return jsonify({"ok": False, "balance": 0})
+    db = load_db()
+    username = session["username"]
+    balance = db["users"].get(username, {}).get("balance", 0)
+    return jsonify({"ok": True, "balance": balance})
 
 
 @bp.route("/game/<gcode>")

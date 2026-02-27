@@ -631,144 +631,143 @@ h1{background:linear-gradient(135deg,#00e6b4,#00b4d8);-webkit-background-clip:te
 </body>
 </html>"""
 
-HTML_DEPOSIT = """<!DOCTYPE html>
+HTML_DEPOSIT = HTML_DEPOSIT_SEPAY = """<!DOCTYPE html>
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Nạp Tiền - SHOP MINHSANG</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#0a1628;color:#fff;min-height:100vh;padding:20px}
-.container{max-width:600px;margin:30px auto}
-.header{display:flex;align-items:center;gap:15px;margin-bottom:30px}
-.back-btn{font-size:28px;color:#00e6b4;text-decoration:none;transition:all 0.3s}
-.back-btn:hover{transform:translateX(-5px)}
-h1{background:linear-gradient(135deg,#00e6b4,#00b4d8);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.step-container{background:rgba(13,31,54,0.95);padding:30px;border-radius:20px;border:1px solid rgba(0,230,180,0.2);backdrop-filter:blur(20px);margin-bottom:20px}
-.step-title{color:#00e6b4;font-size:20px;margin-bottom:20px;text-align:center}
-.amount-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:15px;margin-bottom:20px}
-.amount-btn{padding:15px;background:rgba(0,230,180,0.1);border:2px solid rgba(0,230,180,0.3);border-radius:12px;color:#fff;font-size:18px;font-weight:bold;cursor:pointer;transition:all 0.3s;text-align:center}
-.amount-btn:hover{background:rgba(0,230,180,0.2);border-color:#00e6b4;transform:translateY(-2px)}
-.amount-btn.active{background:linear-gradient(135deg,#00e6b4,#00b4d8);color:#0a1628;border-color:#00e6b4}
-.custom-amount{display:flex;gap:10px;margin-top:15px}
-.custom-amount input{flex:1;padding:15px;border:2px solid rgba(0,230,180,0.2);border-radius:12px;background:rgba(0,230,180,0.05);color:#fff;font-size:16px;outline:none}
-.custom-amount input:focus{border-color:#00e6b4;background:rgba(0,230,180,0.1)}
-.qr-container{background:rgba(13,31,54,0.95);padding:30px;border-radius:20px;text-align:center;border:1px solid rgba(0,230,180,0.2);backdrop-filter:blur(20px);display:none}
-.qr-container.show{display:block}
-.qr-container h3{color:#00e6b4;margin-bottom:20px}
-.qr-code{background:white;padding:20px;border-radius:15px;display:inline-block;margin:20px 0;box-shadow:0 10px 30px rgba(0,230,180,0.2)}
-.qr-code img{width:250px;height:250px;border-radius:10px}
-.transfer-info{background:rgba(0,230,180,0.1);padding:20px;border-radius:12px;margin-top:20px;border:1px solid rgba(0,230,180,0.3)}
-.transfer-info p{margin:12px 0;font-size:16px}
-.transfer-info strong{color:#00e6b4}
-.confirm-btn{width:100%;padding:18px;background:linear-gradient(135deg,#00e6b4,#00b4d8);border:none;border-radius:12px;font-size:18px;font-weight:bold;color:#0a1628;cursor:pointer;margin-top:20px;transition:all 0.3s;box-shadow:0 8px 20px rgba(0,230,180,0.3)}
-.confirm-btn:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(0,230,180,0.5)}
-.confirm-btn:disabled{opacity:0.5;cursor:not-allowed}
-.success-msg{background:rgba(0,230,180,0.15);padding:14px;border-radius:12px;margin-top:20px;text-align:center;border:1px solid rgba(0,230,180,0.3);color:#00e6b4;display:none}
-.success-msg.show{display:block}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(135deg,#0a1628 0%,#0d1f36 50%,#112a45 100%);color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:15px}
+.wrap{width:100%%;max-width:460px}
+.card{background:rgba(13,31,54,0.98);padding:28px 22px;border-radius:22px;box-shadow:0 20px 60px rgba(0,0,0,0.6);border:1px solid rgba(0,230,180,0.15);position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#00e6b4,transparent);animation:shine 3s infinite}
+@keyframes shine{0%%,100%%{opacity:.3}50%%{opacity:1}}
+.back{display:inline-flex;align-items:center;gap:6px;color:rgba(255,255,255,0.5);text-decoration:none;font-size:13px;margin-bottom:18px;transition:.2s}
+.back:hover{color:#00e6b4}
+.ttl{font-size:21px;font-weight:bold;text-align:center;background:linear-gradient(135deg,#00e6b4,#00b4d8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px}
+.sub{text-align:center;color:rgba(255,255,255,.45);font-size:12px;margin-bottom:20px}
+.bal{display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(0,230,180,.07);border:1px solid rgba(0,230,180,.2);border-radius:10px;padding:11px 18px;margin-bottom:22px;font-size:14px}
+.bal b{color:#00e6b4;font-size:16px}
+.lbl{color:rgba(255,255,255,.65);font-size:12px;font-weight:600;margin-bottom:8px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.ab{background:rgba(0,230,180,.07);border:1px solid rgba(0,230,180,.2);border-radius:9px;color:#fff;font-size:13px;font-weight:600;padding:11px 4px;cursor:pointer;transition:.2s;text-align:center}
+.ab:hover,.ab.on{background:rgba(0,230,180,.18);border-color:#00e6b4;color:#00e6b4}
+input[type=number]{width:100%%;padding:12px 14px;background:rgba(0,230,180,.05);border:1.5px solid rgba(0,230,180,.2);border-radius:10px;color:#fff;font-size:15px;outline:none;transition:.2s;margin-bottom:16px}
+input[type=number]:focus{border-color:#00e6b4}
+input::placeholder{color:rgba(255,255,255,.3)}
+.btn{width:100%%;padding:14px;background:linear-gradient(135deg,#00e6b4,#00b4d8);border:none;border-radius:11px;font-size:16px;font-weight:bold;color:#0a1628;cursor:pointer;transition:.3s;box-shadow:0 8px 20px rgba(0,230,180,.25)}
+.btn:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(0,230,180,.4)}
+.err{background:rgba(255,80,80,.1);border:1px solid rgba(255,80,80,.3);color:#ff8888;padding:11px 14px;border-radius:9px;font-size:13px;margin-bottom:16px;text-align:center}
+.binfo{background:rgba(0,230,180,.07);border:1px solid rgba(0,230,180,.18);border-radius:14px;padding:18px;margin-bottom:14px}
+.row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.row:last-child{border:none}
+.rl{color:rgba(255,255,255,.5);font-size:12px}
+.rv{color:#fff;font-size:13px;font-weight:600;text-align:right}
+.rv.hi{color:#00e6b4;font-size:14px}
+.cp{background:none;border:1px solid rgba(0,230,180,.35);color:#00e6b4;border-radius:5px;padding:2px 9px;font-size:11px;cursor:pointer;margin-left:7px;transition:.2s}
+.cp:hover{background:rgba(0,230,180,.15)}
+.cbox{background:rgba(0,230,180,.1);border:1.5px dashed rgba(0,230,180,.5);border-radius:9px;padding:13px;margin-bottom:14px;text-align:center}
+.cl{color:rgba(255,255,255,.45);font-size:11px;margin-bottom:5px}
+.cv{color:#00ff99;font-size:18px;font-weight:bold;letter-spacing:1.5px;word-break:break-all}
+.warn{background:rgba(255,200,0,.07);border:1px solid rgba(255,200,0,.2);border-radius:9px;padding:12px 14px;font-size:12px;color:rgba(255,215,100,.9);line-height:1.7;margin-bottom:14px}
+.timer{text-align:center;color:rgba(255,255,255,.45);font-size:12px;margin-bottom:12px}
+.btn2{width:100%%;padding:11px;background:rgba(255,80,80,.1);border:1px solid rgba(255,80,80,.25);border-radius:9px;color:#ff9090;cursor:pointer;font-size:13px;transition:.2s}
+.btn2:hover{background:rgba(255,80,80,.2)}
 </style>
-<script>
-let selectedAmount = 0;
-let username = "{{ username }}";
-
-function selectAmount(amount) {
-  selectedAmount = amount;
-  event.target.classList.add('active');
-  document.getElementById('customAmount').value = '';
-  showQR();
-}
-
-function setCustomAmount() {
-  const val = parseInt(document.getElementById('customAmount').value);
-  if(val && val > 0) {
-    selectedAmount = val;
-    document.querySelectorAll('.amount-btn').forEach(btn => btn.classList.remove('active'));
-    showQR();
-  }
-}
-
-function showQR() {
-  if(selectedAmount > 0) {
-    const content = `NAP ${username} ${selectedAmount}`;
-    const qrUrl = `https://img.vietqr.io/image/MB-0886027767-compact.png?amount=${selectedAmount}&addInfo=${encodeURIComponent(content)}`;
-    document.getElementById('qrImage').src = qrUrl;
-    document.getElementById('amountDisplay').textContent = selectedAmount.toLocaleString();
-    document.getElementById('contentDisplay').textContent = content;
-    document.getElementById('qrContainer').classList.add('show');
-  }
-}
-
-async function confirmTransfer() {
-  if(selectedAmount <= 0) return;
-
-  const btn = document.getElementById('confirmBtn');
-  btn.disabled = true;
-  btn.textContent = 'Đang gửi...';
-
-  try {
-    const res = await fetch('/api/confirm-deposit', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({amount: selectedAmount})
-    });
-    const data = await res.json();
-
-    if(data.ok) {
-      document.getElementById('successMsg').classList.add('show');
-      btn.textContent = 'Đã gửi xác nhận';
-    } else {
-      btn.disabled = false;
-      btn.textContent = 'Xác nhận đã chuyển khoản';
-      alert(data.error || 'Có lỗi xảy ra');
-    }
-  } catch(e) {
-    btn.disabled = false;
-    btn.textContent = 'Xác nhận đã chuyển khoản';
-    alert('Không thể kết nối');
-  }
-}
-</script>
 </head>
 <body>
-<div class="container">
-<div class="header">
-<a href="/menu" class="back-btn">←</a>
-<h1>💳 Nạp Tiền</h1>
-</div>
+<div class="wrap">
+<div class="card">
+  <a href="/menu" class="back">← Quay lại</a>
+  <div class="ttl">💳 Nạp Tiền</div>
+  <div class="sub">Thanh toán tự động · Cộng tiền ngay lập tức</div>
+  <div class="bal">💰 Số dư: <b>{{ "{:,}".format(balance) }}đ</b></div>
+  {% if error %}<div class="err">⚠️ {{ error }}</div>{% endif %}
 
-<div class="step-container">
-<div class="step-title">📊 Bước 1: Chọn số tiền muốn nạp</div>
-<div class="amount-grid">
-<button class="amount-btn" onclick="selectAmount(50000)">50.000đ</button>
-<button class="amount-btn" onclick="selectAmount(100000)">100.000đ</button>
-<button class="amount-btn" onclick="selectAmount(200000)">200.000đ</button>
-<button class="amount-btn" onclick="selectAmount(500000)">500.000đ</button>
-</div>
-<div class="custom-amount">
-<input type="number" id="customAmount" placeholder="Hoặc nhập số tiền tùy chỉnh" onchange="setCustomAmount()">
-</div>
-</div>
+  {% if not transfer_content %}
+  <form method="POST">
+    <div class="lbl">💵 Chọn số tiền</div>
+    <div class="grid">
+      <button type="button" class="ab" onclick="pick(20000,this)">20,000đ</button>
+      <button type="button" class="ab" onclick="pick(50000,this)">50,000đ</button>
+      <button type="button" class="ab" onclick="pick(100000,this)">100,000đ</button>
+      <button type="button" class="ab" onclick="pick(200000,this)">200,000đ</button>
+      <button type="button" class="ab" onclick="pick(500000,this)">500,000đ</button>
+      <button type="button" class="ab" onclick="pick(1000000,this)">1,000,000đ</button>
+    </div>
+    <div class="lbl">✏️ Hoặc nhập số khác</div>
+    <input type="number" name="amount" id="amt" placeholder="Tối thiểu 10,000đ" min="10000" step="1000">
+    <button type="submit" class="btn">🔑 Tạo Lệnh Nạp</button>
+  </form>
 
-<div class="qr-container" id="qrContainer">
-<h3>📱 Bước 2: Quét mã QR để chuyển khoản</h3>
-<div class="qr-code">
-<img id="qrImage" src="" alt="QR Code">
+  {% else %}
+  <div class="binfo">
+    <div class="row"><span class="rl">🏦 Ngân hàng</span><span class="rv">MBBank</span></div>
+    <div class="row">
+      <span class="rl">💳 Số tài khoản</span>
+      <span class="rv hi">0886027767 <button class="cp" onclick="cp('0886027767',this)">Copy</button></span>
+    </div>
+    <div class="row"><span class="rl">👤 Chủ TK</span><span class="rv">TRAN MINH SANG</span></div>
+    <div class="row"><span class="rl">💰 Số tiền</span><span class="rv hi">{{ "{:,}".format(amount_chosen) }}đ</span></div>
+  </div>
+  <div class="cbox">
+    <div class="cl">⚠️ NỘI DUNG CHUYỂN KHOẢN — GHI ĐÚNG Y CHANG</div>
+    <div class="cv" id="tc">{{ transfer_content }}</div>
+    <button class="cp" style="margin-top:9px;padding:5px 16px;font-size:12px" onclick="cp('{{ transfer_content }}',this)">📋 Copy nội dung</button>
+  </div>
+  <div class="warn">
+    ⚠️ <b>Quan trọng:</b><br>
+    • Ghi <b>đúng nội dung</b> trên khi chuyển khoản<br>
+    • Tiền cộng <b>tự động trong vài giây</b> sau khi CK<br>
+    • Lệnh hết hạn sau <b id="cd" style="color:#ffcc44">15:00</b><br>
+    • Sai nội dung → hệ thống <b>không nhận được</b>
+  </div>
+  <div class="timer">⏳ Đang chờ giao dịch... tự kiểm tra mỗi 8 giây</div>
+  <form method="POST">
+    <input type="hidden" name="amount" value="{{ amount_chosen }}">
+    <button type="submit" class="btn2">🔄 Tạo mã mới</button>
+  </form>
+  {% endif %}
 </div>
-<div class="transfer-info">
-<p><strong>Ngân hàng:</strong> MB Bank</p>
-<p><strong>Số tài khoản:</strong> 0886027767</p>
-<p><strong>Chủ tài khoản:</strong> TRAN MINH SANG</p>
-<p><strong>Số tiền:</strong> <span id="amountDisplay">0</span>đ</p>
-<p><strong>Nội dung:</strong> <span id="contentDisplay"></span></p>
 </div>
-<button class="confirm-btn" id="confirmBtn" onclick="confirmTransfer()">✅ Tôi đã chuyển khoản</button>
-<div class="success-msg" id="successMsg">
-✅ Đã nhận xác nhận! Admin sẽ kiểm tra và duyệt nạp tiền cho bạn trong giây lát.
-</div>
-</div>
-
-</div>
+<script>
+function pick(v,el){
+  document.getElementById('amt').value=v;
+  document.querySelectorAll('.ab').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+}
+function cp(txt,btn){
+  navigator.clipboard.writeText(txt).catch(()=>{
+    const t=document.createElement('textarea');
+    t.value=txt;document.body.appendChild(t);t.select();
+    document.execCommand('copy');document.body.removeChild(t);
+  });
+  const o=btn.textContent;btn.textContent='✅ Đã copy!';
+  setTimeout(()=>btn.textContent=o,2000);
+}
+{% if transfer_content %}
+let s=900;
+const cd=document.getElementById('cd');
+setInterval(()=>{
+  s--;
+  if(s<=0){cd.textContent='HẾT HẠN';cd.style.color='#ff4444';return;}
+  cd.textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%%60).padStart(2,'0');
+},1000);
+let prev={{ balance }};
+setInterval(async()=>{
+  try{
+    const r=await fetch('/api/balance');
+    const d=await r.json();
+    if(d.balance>prev){
+      alert('✅ Nạp tiền thành công!\\nSố dư mới: '+d.balance.toLocaleString('vi-VN')+'đ');
+      window.location.href='/account';
+    }
+  }catch(e){}
+},8000);
+{% endif %}
+</script>
 </body>
 </html>"""
 
