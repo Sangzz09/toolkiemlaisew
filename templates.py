@@ -640,10 +640,10 @@ HTML_DEPOSIT = HTML_DEPOSIT_SEPAY = """<!DOCTYPE html>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(135deg,#0a1628 0%,#0d1f36 50%,#112a45 100%);color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:15px}
-.wrap{width:100%%;max-width:460px}
+.wrap{width:100%;max-width:460px}
 .card{background:rgba(13,31,54,0.98);padding:28px 22px;border-radius:22px;box-shadow:0 20px 60px rgba(0,0,0,0.6);border:1px solid rgba(0,230,180,0.15);position:relative;overflow:hidden}
 .card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#00e6b4,transparent);animation:shine 3s infinite}
-@keyframes shine{0%%,100%%{opacity:.3}50%%{opacity:1}}
+@keyframes shine{0%,100%{opacity:.3}50%{opacity:1}}
 .back{display:inline-flex;align-items:center;gap:6px;color:rgba(255,255,255,0.5);text-decoration:none;font-size:13px;margin-bottom:18px;transition:.2s}
 .back:hover{color:#00e6b4}
 .ttl{font-size:21px;font-weight:bold;text-align:center;background:linear-gradient(135deg,#00e6b4,#00b4d8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px}
@@ -654,10 +654,10 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(135d
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
 .ab{background:rgba(0,230,180,.07);border:1px solid rgba(0,230,180,.2);border-radius:9px;color:#fff;font-size:13px;font-weight:600;padding:11px 4px;cursor:pointer;transition:.2s;text-align:center}
 .ab:hover,.ab.on{background:rgba(0,230,180,.18);border-color:#00e6b4;color:#00e6b4}
-input[type=number]{width:100%%;padding:12px 14px;background:rgba(0,230,180,.05);border:1.5px solid rgba(0,230,180,.2);border-radius:10px;color:#fff;font-size:15px;outline:none;transition:.2s;margin-bottom:16px}
+input[type=number]{width:100%;padding:12px 14px;background:rgba(0,230,180,.05);border:1.5px solid rgba(0,230,180,.2);border-radius:10px;color:#fff;font-size:15px;outline:none;transition:.2s;margin-bottom:16px}
 input[type=number]:focus{border-color:#00e6b4}
 input::placeholder{color:rgba(255,255,255,.3)}
-.btn{width:100%%;padding:14px;background:linear-gradient(135deg,#00e6b4,#00b4d8);border:none;border-radius:11px;font-size:16px;font-weight:bold;color:#0a1628;cursor:pointer;transition:.3s;box-shadow:0 8px 20px rgba(0,230,180,.25)}
+.btn{width:100%;padding:14px;background:linear-gradient(135deg,#00e6b4,#00b4d8);border:none;border-radius:11px;font-size:16px;font-weight:bold;color:#0a1628;cursor:pointer;transition:.3s;box-shadow:0 8px 20px rgba(0,230,180,.25)}
 .btn:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(0,230,180,.4)}
 .err{background:rgba(255,80,80,.1);border:1px solid rgba(255,80,80,.3);color:#ff8888;padding:11px 14px;border-radius:9px;font-size:13px;margin-bottom:16px;text-align:center}
 .binfo{background:rgba(0,230,180,.07);border:1px solid rgba(0,230,180,.18);border-radius:14px;padding:18px;margin-bottom:14px}
@@ -673,22 +673,23 @@ input::placeholder{color:rgba(255,255,255,.3)}
 .cv{color:#00ff99;font-size:18px;font-weight:bold;letter-spacing:1.5px;word-break:break-all}
 .warn{background:rgba(255,200,0,.07);border:1px solid rgba(255,200,0,.2);border-radius:9px;padding:12px 14px;font-size:12px;color:rgba(255,215,100,.9);line-height:1.7;margin-bottom:14px}
 .timer{text-align:center;color:rgba(255,255,255,.45);font-size:12px;margin-bottom:12px}
-.btn2{width:100%%;padding:11px;background:rgba(255,80,80,.1);border:1px solid rgba(255,80,80,.25);border-radius:9px;color:#ff9090;cursor:pointer;font-size:13px;transition:.2s}
+.btn2{width:100%;padding:11px;background:rgba(255,80,80,.1);border:1px solid rgba(255,80,80,.25);border-radius:9px;color:#ff9090;cursor:pointer;font-size:13px;transition:.2s}
 .btn2:hover{background:rgba(255,80,80,.2)}
+@keyframes popIn{0%{transform:scale(0)}80%{transform:scale(1.15)}100%{transform:scale(1)}}
 </style>
 </head>
 <body>
 <div class="wrap">
-<div class="card">
-  <a href="/menu" class="back">← Quay lại</a>
-  <div class="ttl">💳 Nạp Tiền</div>
-  <div class="sub">Thanh toán tự động · Cộng tiền ngay lập tức</div>
-  <div class="bal">💰 Số dư: <b>{{ "{:,}".format(balance) }}đ</b></div>
-  {% if error %}<div class="err">⚠️ {{ error }}</div>{% endif %}
+<div class="card" id="mainCard">
+  <a href="/menu" class="back">&#8592; Quay lại</a>
+  <div class="ttl">&#128179; Nạp Tiền</div>
+  <div class="sub">Thanh toán tự động &middot; Cộng tiền ngay lập tức</div>
+  <div class="bal">&#128176; Số dư: <b>{{ "{:,}".format(balance) }}đ</b></div>
+  {% if error %}<div class="err">&#9888;&#65039; {{ error }}</div>{% endif %}
 
   {% if not transfer_content %}
   <form method="POST">
-    <div class="lbl">💵 Chọn số tiền</div>
+    <div class="lbl">&#128181; Chọn số tiền</div>
     <div class="grid">
       <button type="button" class="ab" onclick="pick(20000,this)">20,000đ</button>
       <button type="button" class="ab" onclick="pick(50000,this)">50,000đ</button>
@@ -697,37 +698,37 @@ input::placeholder{color:rgba(255,255,255,.3)}
       <button type="button" class="ab" onclick="pick(500000,this)">500,000đ</button>
       <button type="button" class="ab" onclick="pick(1000000,this)">1,000,000đ</button>
     </div>
-    <div class="lbl">✏️ Hoặc nhập số khác</div>
+    <div class="lbl">&#9999;&#65039; Hoặc nhập số khác</div>
     <input type="number" name="amount" id="amt" placeholder="Tối thiểu 10,000đ" min="10000" step="1000">
-    <button type="submit" class="btn">🔑 Tạo Lệnh Nạp</button>
+    <button type="submit" class="btn">&#128273; Tạo Lệnh Nạp</button>
   </form>
 
   {% else %}
   <div class="binfo">
-    <div class="row"><span class="rl">🏦 Ngân hàng</span><span class="rv">MBBank</span></div>
+    <div class="row"><span class="rl">&#127970; Ngân hàng</span><span class="rv">MBBank</span></div>
     <div class="row">
-      <span class="rl">💳 Số tài khoản</span>
+      <span class="rl">&#128179; Số tài khoản</span>
       <span class="rv hi">0886027767 <button class="cp" onclick="cp('0886027767',this)">Copy</button></span>
     </div>
-    <div class="row"><span class="rl">👤 Chủ TK</span><span class="rv">TRAN MINH SANG</span></div>
-    <div class="row"><span class="rl">💰 Số tiền</span><span class="rv hi">{{ "{:,}".format(amount_chosen) }}đ</span></div>
+    <div class="row"><span class="rl">&#128100; Chủ TK</span><span class="rv">TRAN MINH SANG</span></div>
+    <div class="row"><span class="rl">&#128176; Số tiền</span><span class="rv hi">{{ "{:,}".format(amount_chosen) }}đ</span></div>
   </div>
   <div class="cbox">
-    <div class="cl">⚠️ NỘI DUNG CHUYỂN KHOẢN — GHI ĐÚNG Y CHANG</div>
+    <div class="cl">&#9888;&#65039; NỘI DUNG CHUYỂN KHOẢN &mdash; GHI ĐÚNG Y CHANG</div>
     <div class="cv" id="tc">{{ transfer_content }}</div>
-    <button class="cp" style="margin-top:9px;padding:5px 16px;font-size:12px" onclick="cp('{{ transfer_content }}',this)">📋 Copy nội dung</button>
+    <button class="cp" style="margin-top:9px;padding:5px 16px;font-size:12px" onclick="cp('{{ transfer_content }}',this)">&#128203; Copy nội dung</button>
   </div>
   <div class="warn">
-    ⚠️ <b>Quan trọng:</b><br>
-    • Ghi <b>đúng nội dung</b> trên khi chuyển khoản<br>
-    • Tiền cộng <b>tự động trong vài giây</b> sau khi CK<br>
-    • Lệnh hết hạn sau <b id="cd" style="color:#ffcc44">15:00</b><br>
-    • Sai nội dung → hệ thống <b>không nhận được</b>
+    &#9888;&#65039; <b>Quan trọng:</b><br>
+    &bull; Ghi <b>đúng nội dung</b> trên khi chuyển khoản<br>
+    &bull; Tiền cộng <b>tự động trong vài giây</b> sau khi CK<br>
+    &bull; Lệnh hết hạn sau <b id="cd" style="color:#ffcc44">15:00</b><br>
+    &bull; Sai nội dung &rarr; hệ thống <b>không nhận được</b>
   </div>
-  <div class="timer">⏳ Đang chờ giao dịch... tự kiểm tra mỗi 8 giây</div>
+  <div class="timer">&#9203; Đang chờ giao dịch... tự kiểm tra mỗi 8 giây</div>
   <form method="POST">
     <input type="hidden" name="amount" value="{{ amount_chosen }}">
-    <button type="submit" class="btn2">🔄 Tạo mã mới</button>
+    <button type="submit" class="btn2">&#128260; Tạo mã mới</button>
   </form>
   {% endif %}
 </div>
@@ -739,38 +740,48 @@ function pick(v,el){
   el.classList.add('on');
 }
 function cp(txt,btn){
-  navigator.clipboard.writeText(txt).catch(()=>{
-    const t=document.createElement('textarea');
+  navigator.clipboard.writeText(txt).catch(function(){
+    var t=document.createElement('textarea');
     t.value=txt;document.body.appendChild(t);t.select();
     document.execCommand('copy');document.body.removeChild(t);
   });
-  const o=btn.textContent;btn.textContent='✅ Đã copy!';
-  setTimeout(()=>btn.textContent=o,2000);
+  var o=btn.textContent;btn.textContent='Đã copy!';
+  setTimeout(function(){btn.textContent=o;},2000);
 }
 {% if transfer_content %}
-let s=900;
-const cd=document.getElementById('cd');
-setInterval(()=>{
+var s=900;
+var cd=document.getElementById('cd');
+setInterval(function(){
   s--;
-  if(s<=0){cd.textContent='HẾT HẠN';cd.style.color='#ff4444';return;}
-  cd.textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%%60).padStart(2,'0');
+  if(s<=0){cd.textContent='HET HAN';cd.style.color='#ff4444';return;}
+  cd.textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
 },1000);
-let prev={{ balance }};
-setInterval(async()=>{
-  try{
-    const r=await fetch('/api/balance');
-    const d=await r.json();
+var prev={{ balance }};
+setInterval(function(){
+  fetch('/api/balance').then(function(r){return r.json();}).then(function(d){
     if(d.balance>prev){
-      alert('✅ Nạp tiền thành công!\\nSố dư mới: '+d.balance.toLocaleString('vi-VN')+'đ');
-      window.location.href='/account';
+      var added=d.balance-prev;
+      document.getElementById('mainCard').innerHTML=
+        '<div style="text-align:center;padding:20px 10px">'+
+        '<div style="font-size:64px;margin-bottom:16px;animation:popIn .4s ease">&#9989;</div>'+
+        '<div style="font-size:22px;font-weight:bold;color:#00e6b4;margin-bottom:8px">Nạp Tiền Thành Công!</div>'+
+        '<div style="color:rgba(255,255,255,.6);font-size:14px;margin-bottom:24px">Hệ thống đã tự động cộng tiền vào tài khoản</div>'+
+        '<div style="background:rgba(0,230,180,.1);border:1px solid rgba(0,230,180,.3);border-radius:14px;padding:20px;margin-bottom:20px">'+
+        '<div style="color:rgba(255,255,255,.5);font-size:12px;margin-bottom:6px">SỐ TIỀN ĐƯỢC CỘNG</div>'+
+        '<div style="font-size:36px;font-weight:bold;color:#00ff99">+'+added.toLocaleString('vi-VN')+'đ</div></div>'+
+        '<div style="background:rgba(255,255,255,.05);border-radius:10px;padding:14px;margin-bottom:20px">'+
+        '<div style="color:rgba(255,255,255,.45);font-size:11px;margin-bottom:4px">SỐ DƯ MỚI</div>'+
+        '<div style="font-size:22px;font-weight:bold;color:#00e6b4">'+d.balance.toLocaleString('vi-VN')+'đ</div></div>'+
+        '<a href="/account" style="display:block;padding:14px;background:linear-gradient(135deg,#00e6b4,#00b4d8);border-radius:11px;font-size:16px;font-weight:bold;color:#0a1628;text-decoration:none;text-align:center;margin-bottom:10px">Xem tài khoản</a>'+
+        '<a href="/buy-key" style="display:block;padding:13px;background:rgba(0,230,180,.1);border:1px solid rgba(0,230,180,.3);border-radius:11px;font-size:15px;color:#00e6b4;text-decoration:none;text-align:center">Mua key ngay</a>'+
+        '</div>';
     }
-  }catch(e){}
+  }).catch(function(){});
 },8000);
 {% endif %}
 </script>
 </body>
 </html>"""
-
 HTML_ENTER_KEY = """<!DOCTYPE html>
 <html lang="vi">
 <head>

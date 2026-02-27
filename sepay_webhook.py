@@ -113,6 +113,7 @@ def process_sepay_webhook(payload: dict) -> dict:
 
     new_balance = db["users"][username]["balance"]
 
+    # Thông báo admin
     _notify(
         f"✅ NẠP TIỀN TỰ ĐỘNG\n\n"
         f"👤 Tài khoản: {username}\n"
@@ -122,9 +123,32 @@ def process_sepay_webhook(payload: dict) -> dict:
         f"📝 {content}\n"
         f"🔖 TxnID: {txn_id} | {txn_date}"
     )
+
+    # Thông báo user qua Telegram (nếu có telegram_id lưu trong DB)
+    db2 = load_db()
+    user_tele_id = db2["users"].get(username, {}).get("telegram_id")
+    if user_tele_id:
+        _send_tele(user_tele_id,
+            f"🎉 NẠP TIỀN THÀNH CÔNG!\n\n"
+            f"💰 Số tiền: +{amount:,}đ\n"
+            f"💎 Số dư mới: {new_balance:,}đ\n"
+            f"🕐 {txn_date}\n\n"
+            f"Cảm ơn bạn đã sử dụng SHOP MINHSANG! 🙏"
+        )
     print(f"[SEPAY] ✅ {username} +{amount:,}đ | TxnID={txn_id}")
     return {"success": True, "message": f"deposited {amount} for {username}"}
 
+
+def _send_tele(chat_id, text: str):
+    """Gửi tin nhắn Telegram cho user"""
+    try:
+        requests.post(
+            f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+            json={"chat_id": chat_id, "text": text},
+            timeout=5
+        )
+    except Exception as e:
+        print(f"[SEPAY] Lỗi gửi Telegram user: {e}")
 
 def _notify(text: str):
     try:
