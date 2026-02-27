@@ -2,7 +2,7 @@
 # ================== algorithms.py ==================
 # Tất cả thuật toán dự đoán Tài/Xỉu
 
-import math, random
+import os, math, random
 from collections import Counter
 import requests
 

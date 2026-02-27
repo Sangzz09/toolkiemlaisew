@@ -2,7 +2,7 @@
 # ================== predict.py ==================
 # Hàm analyze, predict, lưu/tải lịch sử
 
-import json, time, random
+import os, json, time, random
 from collections import deque
 from datetime import datetime
 from config import DATA_FILE
