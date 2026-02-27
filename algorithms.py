@@ -7,24 +7,24 @@ from collections import Counter
 import requests
 
 # ================== API GAMES ==================
-API_SUN = "https://sunwinsaygex-pcl2.onrender.com/api/sun"
-API_HIT = "https://hitclub-zhx9.onrender.com/api/taixiu"
-API_SUM = "https://cailonma-sumcc.onrender.com/api/taixiu/lucky"
+API_SUN = "https://sunwinsaygex-vd0m.onrender.com/api/sun"
+API_HIT = "https://binhtool-hitpredict.onrender.com/api/taixiu"
+API_SUM = ""  # SumClub đã bỏ
 LOGO_SUNWIN = "https://i.postimg.cc/q7ybsvSb/IMG-1615.jpg"
 LOGO_HITCLUB = "https://i.postimg.cc/66YHLSbG/IMG-1616.jpg"
-LOGO_SUMCLUB = "https://i.postimg.cc/C1gt9QB0/IMG-1593.jpg"
+LOGO_SUMCLUB = ""
 LOGO_B52 = "https://i.postimg.cc/q7swtZCB/IMG-1617.jpg"
-API_B52A = "https://b52-eljr.onrender.com/api/taixiu"
-API_B52B = "https://b52-eljr.onrender.com/api/taixiu"
-API_LUCK8 = "https://luckywingugu.onrender.com/luck8/tx"
+API_B52A = "https://b52-taixiu-l69b.onrender.com/api/taixiu"
+API_B52B = "https://b52-taixiu-l69b.onrender.com/api/taixiu"
+API_LUCK8 = "https://luck8md5vip.onrender.com/api/taixiu?id="
 LOGO_LUCK8 = "https://i.postimg.cc/tg4Pgzzt/IMG-1702.jpg"
-API_SICBO = "https://sicsun-9wes.onrender.com/predict"
+API_SICBO = "https://sicsunnehahahaha.onrender.com/predict"
 LOGO_SICBO = "https://i.postimg.cc/fR36RRwD/IMG-2036.jpg"
-API_789 = "https://seven89-wkxd.onrender.com/api/789/tx"
+API_789 = "https://api789hix.hacksieucap.pro/taixiuv3"
 LOGO_789 = "https://i.postimg.cc/43HWjS37/789.webp"
-API_68GB = "https://six8-api-5pje.onrender.com/68gbmd5"
+API_68GB = "http://68.183.228.40:3090/api/md5"
 LOGO_68GB = "https://i.postimg.cc/zDQVG2DG/OIP.webp"
-API_LC79 = "https://lc79-api.onrender.com/api/taixiu"
+API_LC79 = "https://lc79md5x.hacksieucap.pro/lc79hu?t=1771672415636"
 LOGO_LC79 = "https://i.postimg.cc/vTSzPJnm/lc79.webp"
 
 # Thuật toán dự đoán vị xúc xắc cho Sicbo
@@ -68,7 +68,10 @@ def predict_sicbo_dice_position(h, recent_totals):
 
 def safe_json(url, timeout=5):
     try:
-        r = requests.get(url, timeout=timeout, verify=False)
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+        r = requests.get(url, headers=headers, timeout=timeout, verify=False)
         if r.status_code == 200: 
             return r.json()
     except requests.exceptions.Timeout:

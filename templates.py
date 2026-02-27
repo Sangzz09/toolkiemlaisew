@@ -416,14 +416,7 @@ Hết hạn: {{ key_expires }}
 <span class="game-btn">Vào chơi</span>
 </div>
 </a>
-<a href="/game/sum" style="text-decoration:none">
-<div class="game-card">
-<div class="game-icon"><img src="https://i.postimg.cc/C1gt9QB0/IMG-1593.jpg" alt="SumClub" style="width:80px;height:80px;border-radius:12px;object-fit:cover;box-shadow:0 4px 12px rgba(0,230,180,0.3)"></div>
-<h3>SumClub</h3>
-<p>Phân tích tài xỉu SumClub chuyên nghiệp</p>
-<span class="game-btn">Vào chơi</span>
-</div>
-</a>
+
 <a href="/game/luck8" style="text-decoration:none">
 <div class="game-card">
 <div class="game-icon"><img src="https://i.postimg.cc/tg4Pgzzt/IMG-1702.jpg" alt="Luck8" style="width:80px;height:80px;border-radius:12px;object-fit:cover;box-shadow:0 4px 12px rgba(0,230,180,0.3)"></div>
@@ -1762,8 +1755,8 @@ body::before{content:'';position:absolute;top:0;left:0;width:100%;height:100%;ba
 
 /* New Robot UI */
 .draggable-box{position:fixed;top:15px;left:15px;display:flex;align-items:center;gap:12px;z-index:9999;touch-action:none;user-select:none;-webkit-user-select:none;}
-.robot-container{width:66px;height:66px;animation:float 3s ease-in-out infinite;}
-.robot-avatar{width:100%;border-radius:50%;box-shadow:none;}
+.robot-container{width:150px;height:150px;animation:float 3s ease-in-out infinite;}
+.robot-avatar{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 0 5px rgba(0,230,180,0.5));}
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
 .action-btns{position:absolute;top:-18px;left:-10px;display:flex;gap:5px;z-index:10001}
 .action-btn{width:24px;height:24px;border-radius:50%;border:none;background:rgba(13,31,54,0.9);color:#00e6b4;font-weight:bold;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 5px rgba(0,0,0,0.5);border:1px solid rgba(0,230,180,0.3);transition:all 0.2s}
@@ -1860,7 +1853,7 @@ gap:4px;
 
 @media(max-width:600px){
 .draggable-box{top:70px;left:10px;gap:8px}
-.robot-container{width:50px;height:50px}
+.robot-container{width:100px;height:100px}
 .prediction-box{padding:8px 12px;border-radius:12px}
 .session-info{font-size:11px}
 .waiting{font-size:12px}
@@ -1884,20 +1877,20 @@ async function refresh(){
 try{
 let r=await fetch("/api/predict/"+gameCode);
 let j=await r.json();
-if(j.ok && j.result){
+// Lấy data linh hoạt: ưu tiên j.result > j.data > chính j
+let data = (j && j.result) ? j.result : (j && j.data) ? j.data : j;
+if(data && typeof data==='object'){
 if(gameCode==='sun' || gameCode==='789' || gameCode==='68gb' || gameCode==='lc79'){
-updateGenericGame(j.result);
+updateGenericGame(data);
 }else if(gameCode==='sicbo'){
-updateSicbo(j.result);
-}else if(gameCode==='sum'){
-updateSumClub(j.result);
+updateSicbo(data);
 }else if(gameCode==='luck8'){
-updateLuck8(j.result);
+updateLuck8(data);
 }else{
-updateHitB52(j.result);
+updateHitB52(data);
 }
 }
-}catch(e){console.error(e)}
+}catch(e){console.error('[refresh error]',e)}
 }
 
 function triggerRobotEffect(){
@@ -2019,6 +2012,15 @@ function updateRobotUI(phien, pred, conf){
     }
 }
 
+function normalizePred(raw){
+    if(!raw) return null;
+    let s = String(raw).trim().toLowerCase()
+        .normalize("NFD").replace(/[̀-ͯ]/g,""); // bỏ dấu
+    if(s==='tai'||s==='t'||s==='over'||s==='big'||s==='1') return 'Tài';
+    if(s==='xiu'||s==='x'||s==='under'||s==='small'||s==='0') return 'Xỉu';
+    return null;
+}
+
 function updateGenericGame(data){
 let sessionInfo = document.getElementById("session-info-text");
 let waitingText = document.getElementById("waiting-text");
@@ -2027,43 +2029,46 @@ let confidenceText = document.getElementById("confidence");
 
 if(!sessionInfo) return;
 
-let phien=data.phien;
-let pred=data.du_doan_tiep_theo || data.du_doan;
-let conf=data.do_tin_cay || 0.72;
-let confPercent=Math.round(conf*100);
+// Đọc field hoa/thường đều được: Phien/phien, Ket_qua/ket_qua/du_doan...
+let phien = data.Phien || data.phien || data.Session || data.session || data.round || null;
+let rawPred = data.du_doan || data.du_doan_tiep_theo || data.prediction || data.Ket_qua || data.ket_qua || data.KetQua || null;
+let pred = normalizePred(rawPred);
+let conf = data.do_tin_cay || data.confidence || 0.72;
+let confPercent = conf > 1 ? Math.round(conf) : Math.round(conf * 100);
 
-if(!phien || phien==="---"){
+if((!phien || phien==="---" || phien==="N/A") && !pred){
 sessionInfo.innerHTML = "Đang kết nối...";
 waitingText.innerHTML = "Đang tải dữ liệu...";
 confidenceBox.style.display = "none";
 return;
 }
 
-let phienTiepTheo = parseInt(phien) + 1;
+let phienTiepTheo = (phien && phien!=="---" && !isNaN(parseInt(phien))) ? (parseInt(phien) + 1) : "---";
 sessionInfo.innerHTML = `Phiên: #${phienTiepTheo}`;
 sessionInfo.style.display = "block";
 
-if(lastSession !== phien){
-lastSession = phien;
+if(lastSession !== String(phien)){
+lastSession = String(phien);
 lastPredictedSession = null;
 triggerRobotEffect();
 }
 
-if(pred && (pred==="Tài" || pred==="Xỉu")){
+if(pred){
 let color = pred==="Tài" ? "#00ff00" : "#ff4444";
 let fullHtml = `Dự đoán: <span style="color:${color};font-size:26px;font-weight:900;text-shadow:0 0 15px ${color}">${pred}</span>`;
-if (waitingText.getAttribute('data-last') !== pred) {
+if(waitingText.getAttribute('data-last') !== pred){
     typeWriter(waitingText, `Dự đoán: ${pred}`, fullHtml);
     waitingText.setAttribute('data-last', pred);
-} else {
+}else{
     waitingText.innerHTML = fullHtml;
 }
 confidenceText.innerHTML = `${confPercent}%`;
 confidenceText.style.color = confPercent > 70 ? "#00ff00" : "#ffaa00";
 confidenceBox.style.display = "block";
-lastPredictedSession = phien;
+lastPredictedSession = String(phien);
 }else{
 waitingText.innerHTML = "Đang chờ kết quả...";
+waitingText.removeAttribute('data-last');
 confidenceBox.style.display = "none";
 }
 
@@ -2357,7 +2362,7 @@ if(gameCode==='hit' || gameCode==='b52' || gameCode==='luck8'){
 updateTime();
 }
 
-if(gameCode!=='sun' && gameCode!=='sum' && gameCode!=='luck8'){
+if(gameCode!=='sun' && gameCode!=='luck8'){
 particlesJS("particles-js",{
 particles:{
 number:{value:120,density:{enable:true,value_area:800}},
@@ -2377,92 +2382,7 @@ retina_detect:true
 });
 }
 
-// Cho phép kéo thả Robot mới
-document.addEventListener("DOMContentLoaded", function() {
-    dragElement(document.getElementById("dragBox"));
-    if(gameCode==='sum') dragElement(document.getElementById("widget"));
-});
 
-function dragElement(elmnt){
-if(!elmnt) return;
-let startX=0,startY=0,initialLeft=0,initialTop=0;
-
-// Thêm style cho cursor
-elmnt.style.cursor='grab';
-elmnt.style.touchAction = 'none';
-elmnt.style.userSelect = 'none';
-elmnt.style.position = 'fixed';
-
-// Mouse events
-elmnt.onmousedown=dragMouseDown;
-// Touch events
-elmnt.addEventListener('touchstart', dragTouchStart, {passive: false});
-
-function dragMouseDown(e){
-    e=e||window.event;
-    // Cho phép click vào nút đóng hoặc các nút khác
-    if(e.target.tagName==='BUTTON' || e.target.closest('button')) return;
-    
-    e.preventDefault();
-    startX=e.clientX;
-    startY=e.clientY;
-    let rect = elmnt.getBoundingClientRect();
-    initialLeft=rect.left;
-    initialTop=rect.top;
-    
-    elmnt.style.cursor='grabbing';
-    elmnt.style.opacity='0.8';
-    document.onmouseup=closeDragElement;
-    document.onmousemove=elementDrag;
-}
-
-function elementDrag(e){
-    e=e||window.event;
-    e.preventDefault();
-    let dx=e.clientX-startX;
-    let dy=e.clientY-startY;
-    elmnt.style.top=(initialTop+dy)+"px";
-    elmnt.style.left=(initialLeft+dx)+"px";
-    elmnt.style.bottom='auto';
-    elmnt.style.right='auto';
-}
-
-function dragTouchStart(e){
-    if(e.target.tagName==='BUTTON' || e.target.closest('button')) return;
-    
-    if(e.cancelable) e.preventDefault();
-    let touch=e.touches[0];
-    startX=touch.clientX;
-    startY=touch.clientY;
-    let rect = elmnt.getBoundingClientRect();
-    initialLeft=rect.left;
-    initialTop=rect.top;
-    
-    elmnt.style.opacity='0.8';
-    document.addEventListener('touchend', closeDragElement, {passive: false});
-    document.addEventListener('touchmove', elementTouchDrag, {passive: false});
-}
-
-function elementTouchDrag(e){
-    if(e.cancelable) e.preventDefault();
-    let touch=e.touches[0];
-    let dx=touch.clientX-startX;
-    let dy=touch.clientY-startY;
-    elmnt.style.top=(initialTop+dy)+"px";
-    elmnt.style.left=(initialLeft+dx)+"px";
-    elmnt.style.bottom='auto';
-    elmnt.style.right='auto';
-}
-
-function closeDragElement(){
-    document.onmouseup=null;
-    document.onmousemove=null;
-    document.removeEventListener('touchend', closeDragElement);
-    document.removeEventListener('touchmove', elementTouchDrag);
-    elmnt.style.cursor='grab';
-    elmnt.style.opacity='1';
-}
-}
 </script>
 </head>
 <body>
@@ -2473,10 +2393,10 @@ function closeDragElement(){
 </div>
 
 <div class="iframe-container" id="sunContainer" style="display:{% if gcode=='sun' or gcode=='sicbo' %}block{% else %}none{% endif %}">
-<iframe src="https://web.sunwin.sx/?affId=Sunwin"></iframe>
+<iframe src="https://web.sunwin.pw/?affId=Sunwin"></iframe>
 </div>
 <div class="iframe-container" id="789Container" style="display:{% if gcode=='789' %}block{% else %}none{% endif %}">
-<iframe src="https://play.789club.cc/?affId=789"></iframe>
+<iframe src="https://play.789club.sh/?affId=7d79c8d7b5b4ce959dd72d408ee7eaef&referrer_domain=emani.io"></iframe>
 </div>
 <div class="iframe-container" id="68gbContainer" style="display:{% if gcode=='68gb' %}block{% else %}none{% endif %}">
 <iframe src="https://68gbvn88.bar/"></iframe>
@@ -2485,13 +2405,13 @@ function closeDragElement(){
 <iframe src="https://play.lc79.bet/"></iframe>
 </div>
 
-<div class="draggable-box" id="dragBox" style="display:{% if gcode == 'hit' or gcode == 'b52' %}none{% else %}flex{% endif %}">
+<div class="draggable-box" id="dragBox" style="touch-action: none; display:{% if gcode == 'hit' or gcode == 'b52' %}none{% else %}flex{% endif %}">
   <div class="action-btns">
     <button class="action-btn" onclick="toggleRobot()">×</button>
     <button class="action-btn" onclick="rotateRobot()">↻</button>
   </div>
   <div class="robot-container">
-    <img src="https://i.postimg.cc/1zLnNsCZ/IMG-3575.gif" alt="AI" class="robot-avatar" id="robotAvatar">
+    <img src="https://i.postimg.cc/63bdy9D9/robotics-1.gif" alt="AI" class="robot-avatar" id="robotAvatar" draggable="false">
   </div>
   <div class="prediction-box">
     <div class="session-info" id="session-info-text" style="display: none;">Đang khởi động AI...</div>
@@ -2502,22 +2422,7 @@ function closeDragElement(){
   </div>
 </div>
 
-<div class="widget" id="widget" style="display:{% if gcode=='sum' %}flex{% else %}none{% endif %}">
-<div class="session">Phiên tiếp theo: <span id="sumSession">—</span></div>
-<div class="row">
-<div class="side">
-<div class="dot" id="dotTai"></div>
-<span>Tài</span>
-</div>
-<div class="center-logo">
-<img src="https://i.postimg.cc/C1gt9QB0/IMG-1593.jpg" alt="SumClub">
-</div>
-<div class="side">
-<div class="dot" id="dotXiu"></div>
-<span>Xỉu</span>
-</div>
-</div>
-</div>
+
 
 <div class="wrapper" id="hitb52Container" style="display:{% if gcode=='hit' or gcode=='b52' %}block{% else %}none{% endif %}">
 <h2 class="game-title-main">
@@ -2586,7 +2491,85 @@ function closeDragElement(){
         <div style="text-align:center;color:#aaa;padding:20px">Chưa có dữ liệu</div>
     </div>
 </div>
+
+<script>
+(function(){
+  var elmnt = document.getElementById('dragBox');
+  if(!elmnt) return;
+
+  elmnt.style.position = 'fixed';
+  elmnt.style.right    = 'auto';
+  elmnt.style.bottom   = 'auto';
+  elmnt.style.touchAction      = 'none';
+  elmnt.style.userSelect       = 'none';
+  elmnt.style.webkitUserSelect = 'none';
+  elmnt.style.cursor = 'grab';
+
+  // Lấy vị trí thực tế sau khi render, ghi vào inline style
+  var r = elmnt.getBoundingClientRect();
+  elmnt.style.top  = r.top  + 'px';
+  elmnt.style.left = r.left + 'px';
+
+  var startX=0, startY=0, startTop=0, startLeft=0, active=false;
+
+  function getTop()  { return parseFloat(elmnt.style.top)  || 0; }
+  function getLeft() { return parseFloat(elmnt.style.left) || 0; }
+
+  function beginDrag(clientX, clientY){
+    active    = true;
+    startX    = clientX;
+    startY    = clientY;
+    startTop  = getTop();
+    startLeft = getLeft();
+    elmnt.style.cursor = 'grabbing';
+    document.querySelectorAll('iframe').forEach(function(f){ f.style.pointerEvents='none'; });
+  }
+
+  function moveDrag(clientX, clientY){
+    if(!active) return;
+    var newTop  = startTop  + (clientY - startY);
+    var newLeft = startLeft + (clientX - startX);
+    newTop  = Math.max(0, Math.min(newTop,  window.innerHeight - elmnt.offsetHeight));
+    newLeft = Math.max(0, Math.min(newLeft, window.innerWidth  - elmnt.offsetWidth));
+    elmnt.style.top  = newTop  + 'px';
+    elmnt.style.left = newLeft + 'px';
+  }
+
+  function endDrag(){
+    active = false;
+    elmnt.style.cursor = 'grab';
+    document.querySelectorAll('iframe').forEach(function(f){ f.style.pointerEvents='auto'; });
+  }
+
+  // ---- MOUSE ----
+  elmnt.addEventListener('mousedown', function(e){
+    if(e.target.tagName==='BUTTON' || e.target.closest('button')) return;
+    e.preventDefault();
+    beginDrag(e.clientX, e.clientY);
+  });
+  document.addEventListener('mousemove', function(e){
+    if(active){ e.preventDefault(); moveDrag(e.clientX, e.clientY); }
+  });
+  document.addEventListener('mouseup', endDrag);
+
+  // ---- TOUCH ----
+  elmnt.addEventListener('touchstart', function(e){
+    if(e.target.tagName==='BUTTON' || e.target.closest('button')) return;
+    if(e.cancelable) e.preventDefault();
+    var t = e.touches[0];
+    beginDrag(t.clientX, t.clientY);
+  }, {passive: false});
+
+  document.addEventListener('touchmove', function(e){
+    if(!active) return;
+    if(e.cancelable) e.preventDefault();
+    var t = e.touches[0];
+    moveDrag(t.clientX, t.clientY);
+  }, {passive: false});
+
+  document.addEventListener('touchend',    endDrag);
+  document.addEventListener('touchcancel', endDrag);
+})();
+</script>
 </body>
 </html>"""
-
-

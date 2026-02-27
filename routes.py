@@ -3,11 +3,12 @@
 # Tất cả route Flask
 
 from flask import Blueprint, request, jsonify, redirect, url_for, session, render_template_string
-from config import load_db, save_db, hash_password, create_key, get_vip_level, get_history_depth, VIP_LEVELS, SHOP_NAME, ADMIN_ID, BOT_TOKEN
+from config import load_db, save_db, hash_password, create_key, get_vip_level, get_history_depth, VIP_LEVELS, SHOP_NAME, ADMIN_ID, BOT_TOKEN, pending_deposits
+import config
 from templates import *
 from predict import predict, get_formatted_history, load_history, save_history, load_prediction_history, record_prediction, update_prediction_results, HIST, PREDICTION_HISTORY, STATS
-from algorithms import safe_json, normalize, API_SUN, API_HIT, API_SUM, API_B52A, API_B52B, API_LUCK8, API_SICBO, API_789, API_68GB, API_LC79
-import time, json
+from algorithms import safe_json, normalize, API_SUN, API_HIT, API_B52A, API_B52B, API_LUCK8, API_SICBO, API_789, API_68GB, API_LC79
+import time, json, os, requests
 from nanoid import generate
 
 bp = Blueprint('main', __name__)
@@ -311,6 +312,8 @@ def game(gcode):
     if username in db.get("blocked_web_login", []):
         session.clear()
         return redirect(url_for("main.login"))
+    
+    gcode = gcode.lower()
 
     active_key = db["active"].get(username)
 
@@ -329,7 +332,6 @@ def game(gcode):
         "sun": "SunWin",
         "hit": "HitClub",
         "b52": "B52",
-        "sum": "SumClub",
         "luck8": "Luck8",
         "sicbo": "Sicbo SunWin",
         "789": "789Club",
@@ -359,11 +361,13 @@ def enter_key(gcode):
     if username in db.get("blocked_web_login", []):
         session.clear()
         return redirect(url_for("main.login"))
+        
+    gcode = gcode.lower()
+    
     game_name_map = {
         "sun": "SunWin",
         "hit": "HitClub",
         "b52": "B52",
-        "sum": "SumClub",
         "luck8": "Luck8",
         "sicbo": "Sicbo SunWin",
         "789": "789Club",
@@ -375,7 +379,6 @@ def enter_key(gcode):
         "sun": "https://i.postimg.cc/q7ybsvSb/IMG-1615.jpg",
         "hit": "https://i.postimg.cc/66YHLSbG/IMG-1616.jpg",
         "b52": "https://i.postimg.cc/q7swtZCB/IMG-1617.jpg",
-        "sum": "https://i.postimg.cc/C1gt9QB0/IMG-1593.jpg",
         "luck8": "https://i.postimg.cc/tg4Pgzzt/IMG-1702.jpg",
         "sicbo": "https://i.postimg.cc/5tLC4p8q/IMG-2048.jpg",
         "789": "https://i.postimg.cc/43HWjS37/789.webp",
@@ -443,10 +446,10 @@ def api_predict(game):
 @bp.route("/api/prediction-stats/<game>")
 def api_prediction_stats(game):
     game = game.lower()
-    if game not in PREDICTION_HIST:
+    if game not in PREDICTION_HISTORY:
         return jsonify({"ok": False, "error": "invalid game"})
 
-    history = list(PREDICTION_HIST[game])
+    history = list(PREDICTION_HISTORY[game])
     total = len(history)
     correct = sum(1 for p in history if p.get("correct") == True)
 
@@ -473,6 +476,7 @@ def save_luck8_history_api():
 
         # Lưu lịch sử vào file để phân tích
         history_file = "luck8_analysis_history.json"
+        import os
         try:
             if os.path.exists(history_file):
                 with open(history_file, 'r') as f:
@@ -518,8 +522,8 @@ def test_send_button():
             
             msg = "🧪 TEST BUTTON DUYỆT ĐƠN\n\nNếu bạn thấy button này, bot đang hoạt động!"
             
-            if bot_app and bot_app.bot:
-                await bot_app.bot.send_message(
+            if config.bot_app and config.bot_app.bot:
+                await config.bot_app.bot.send_message(
                     chat_id=ADMIN_ID,
                     text=msg,
                     reply_markup=keyboard
@@ -570,7 +574,7 @@ def confirm_deposit():
         "time": time.time()
     }
 
-    if bot_app:
+    if config.bot_app:
         try:
             admin_msg = (f"💰 XÁC NHẬN ĐÃ CHUYỂN KHOẢN (Web)\n\n"
                          f"🎮 Tài khoản: {username}\n"
@@ -586,11 +590,6 @@ def confirm_deposit():
             print(f"Error sending to admin: {e}")
 
     return jsonify({"ok": True})
-
-
-pending_deposits = {}
-deposit_counter = 0  # Counter để tạo short ID
-bot_app = None
 
 
 

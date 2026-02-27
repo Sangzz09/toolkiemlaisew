@@ -80,3 +80,8 @@ def create_key(kind="LK", days=None, price=0):
         "createdAt": now, "expiresAt": expires,
         "status": "available", "usedBy": None
     }
+
+# ================== SHARED STATE ==================
+pending_deposits = {}
+deposit_counter = 0
+bot_app = None

@@ -4,7 +4,10 @@
 
 import os, json, time, asyncio, threading
 from datetime import datetime
-from config import BOT_TOKEN, ADMIN_ID, SHOP_NAME, load_db, save_db, create_key, get_vip_level, VIP_LEVELS
+from config import BOT_TOKEN, ADMIN_ID, SHOP_NAME, load_db, save_db, create_key, get_vip_level, VIP_LEVELS, pending_deposits
+import config
+from algorithms import safe_json, normalize, API_SUN, API_HIT, API_B52A, API_B52B, API_LUCK8, API_SICBO, API_789, API_68GB, API_LC79, API_SUM
+from predict import PREDICTION_HISTORY
 
 try:
     from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -244,9 +247,8 @@ async def callback_confirm_transfer(update: Update, context: ContextTypes.DEFAUL
         f"💬 User đã xác nhận chuyển khoản!")
     
     # Tạo short ID để avoid callback_data quá dài (Telegram limit 64 bytes)
-    global deposit_counter
-    deposit_counter += 1
-    short_id = f"d{deposit_counter}"
+    config.deposit_counter += 1
+    short_id = f"d{config.deposit_counter}"
     pending_deposits[short_id] = deposit
     # Xóa cái deposit_id cũ để tránh duplicate
     del pending_deposits[deposit_id]
@@ -1020,17 +1022,15 @@ async def cmd_lichsu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         current_session = api_data.get("Phien", "---")
         current_result = normalize(api_data.get("Ket_qua"))
     elif game == "luck8":
-        current_session = api_data.get("phien", "---")
-        current_result = normalize(api_data.get("ket_qua"))
+        phien_data = api_data.get("phienHienTai", {})
+        current_session = phien_data.get("phien", "---")
+        current_result = normalize(phien_data.get("ketqua"))
     elif game == "789":
         current_session = api_data.get("phien", "---")
         current_result = normalize(api_data.get("ket_qua"))
     elif game == "68gb":
-        current_session = api_data.get("phien", "---")
-        current_result = normalize(api_data.get("ket_qua"))
-    elif game == "lc79":
-        current_session = api_data.get("phien", "---")
-        current_result = normalize(api_data.get("ket_qua"))
+        current_session = api_data.get("Phien") or api_data.get("phien", "---")
+        current_result = normalize(api_data.get("Ket_qua") or api_data.get("ket_qua"))
 
     # Lấy thống kê từ PREDICTION_HISTORY
     history = list(PREDICTION_HISTORY[game])
@@ -1127,7 +1127,6 @@ async def cmd_lichsu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def start_bot_async():
-    global bot_app
 
     if not TELEGRAM_AVAILABLE:
         print("❌ Telegram bot bị tắt do thiếu thư viện python-telegram-bot")
@@ -1138,7 +1137,8 @@ async def start_bot_async():
     print(f"👑 Admin ID: {ADMIN_ID}")
 
     try:
-        bot_app = Application.builder().token(BOT_TOKEN).build()
+        config.bot_app = Application.builder().token(BOT_TOKEN).build()
+        bot_app = config.bot_app
 
         # Thêm command handlers TRƯỚC message handler để đảm bảo ưu tiên xử lý
         bot_app.add_handler(CommandHandler("start", cmd_start))
