@@ -1204,3 +1204,16 @@ async def start_bot_async():
         )
 
 
+def run_bot_in_thread():
+    """Chạy bot trong thread riêng với event loop riêng"""
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(start_bot_async())
+    except Exception as e:
+        print(f"[ERROR] Bot error: {e}")
+    finally:
+        try:
+            loop.close()
+        except:
+            pass
