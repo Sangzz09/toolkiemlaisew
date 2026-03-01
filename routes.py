@@ -338,13 +338,21 @@ def deposit():
     )
 
 
-@bp.route("/api/sepay-webhook", methods=["POST"])
+@bp.route("/api/sepay-webhook", methods=["POST", "OPTIONS"])
 def sepay_webhook():
-    """SePay gọi endpoint này khi có giao dịch. URL: https://toolkiemlaisew.onrender.com/api/sepay-webhook"""
+    """SePay gọi endpoint này khi có giao dịch - Fix 403"""
+    if request.method == "OPTIONS":
+        res = jsonify({"ok": True})
+        res.headers["Access-Control-Allow-Origin"] = "*"
+        res.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+        res.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        return res, 200
     from sepay_webhook import process_sepay_webhook
     payload = request.get_json(silent=True) or {}
     result  = process_sepay_webhook(payload)
-    return jsonify(result)
+    res = jsonify(result)
+    res.headers["Access-Control-Allow-Origin"] = "*"
+    return res
 
 
 @bp.route("/api/balance")
