@@ -69,6 +69,11 @@ if __name__ == "__main__":
             print("[INFO] Website vẫn hoạt động bình thường")
 
         print(f"[START] Flask chạy tại http://0.0.0.0:{PORT}")
+
+        # Giữ server luôn thức (tránh Render free bị ngủ)
+        from keep_alive import start_keep_alive
+        start_keep_alive()
+
         app.run(host="0.0.0.0", port=PORT, debug=False, use_reloader=False)
     except Exception as e:
         print(f"\n❌ LỖI SERVER NGHIÊM TRỌNG: {e}")

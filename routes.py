@@ -642,5 +642,11 @@ def confirm_deposit():
 
 
 
+@bp.route("/ping")
+def ping():
+    """Endpoint để keep_alive tự ping, tránh Render free bị ngủ."""
+    return "pong", 200
+
+
 def register_routes(app):
     app.register_blueprint(bp)
