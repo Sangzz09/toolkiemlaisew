@@ -30,9 +30,24 @@ def _save(data):
 def create_deposit_order(username: str, amount: int) -> str:
     """Tạo đơn nạp, trả về nội dung CK vd: NAP sang A3K9B"""
     pending = _load()
-    # Xóa đơn cũ của user
-    for k in [k for k, v in pending.items() if v.get("username") == username]:
+    now = time.time()
+    
+    # Chỉ xóa đơn cũ đã HẾT HẠN (>30 phút), giữ lại đơn chưa hết hạn
+    # để user reset web vẫn dùng được mã cũ
+    expired = [k for k, v in pending.items() 
+               if v.get("username") == username and now - v.get("created_at", 0) > 1800]
+    for k in expired:
         del pending[k]
+    
+    # Nếu user đã có đơn chưa hết hạn → trả lại mã cũ, không tạo mới
+    for k, v in pending.items():
+        if v.get("username") == username and now - v.get("created_at", 0) <= 1800:
+            # Cập nhật amount nếu khác
+            if v.get("amount") != amount:
+                v["amount"] = amount
+                _save(pending)
+            return k
+    
     rand    = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
     content = f"NAP {username} {rand}"
     pending[content] = {
@@ -83,7 +98,7 @@ def process_sepay_webhook(payload: dict) -> dict:
     # Dọn đơn hết hạn (15 phút)
     pending = _load()
     now     = time.time()
-    expired = [k for k, v in pending.items() if now - v.get("created_at", 0) > 900]
+    expired = [k for k, v in pending.items() if now - v.get("created_at", 0) > 1800]
     for k in expired:
         del pending[k]
     if expired:

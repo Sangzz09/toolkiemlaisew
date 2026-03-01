@@ -323,7 +323,7 @@ def deposit():
         pending = load_pending()
         now = time.time()
         for key, order in pending.items():
-            if order.get("username") == username and now - order.get("created_at", 0) < 900:
+            if order.get("username") == username and now - order.get("created_at", 0) < 1800:
                 transfer_content = key
                 amount_chosen = order.get("amount", 0)
                 break
