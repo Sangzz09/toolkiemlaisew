@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Đăng nhập - SHOP MINHSANG</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:linear-gradient(135deg,#0a1628 0%,#0d1f36 50%,#112a45 100%);color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;position:relative}
+body::before{content:'';position:absolute;width:100%;height:100%;background:radial-gradient(circle at 30% 50%,rgba(0,230,180,0.08) 0%,transparent 50%);animation:pulse 6s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+.form-box{background:rgba(13,31,54,0.98);padding:35px;border-radius:20px;box-shadow:0 15px 40px rgba(0,0,0,0.6);width:90%;max-width:400px;border:1px solid rgba(0,230,180,0.25);backdrop-filter:blur(15px);position:relative;z-index:1}
+.logo-container{text-align:center;margin-bottom:25px}
+.logo-container img{width:90px;height:90px;border-radius:18px;object-fit:cover;border:3px solid rgba(0,230,180,0.4);box-shadow:0 8px 20px rgba(0,230,180,0.3);transition:transform 0.3s}
+.logo-container img:hover{transform:scale(1.05)}
+.shop-title{text-align:center;margin-bottom:30px;font-size:26px;background:linear-gradient(135deg,#00e6b4,#00b4d8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:bold;letter-spacing:1px}
+.form-group{margin-bottom:20px;position:relative}
+.form-group input{width:100%;padding:14px 14px 14px 45px;border:2px solid rgba(0,230,180,0.25);border-radius:12px;font-size:15px;background:rgba(0,230,180,0.08);color:#fff;outline:none;transition:all 0.3s}
+.form-group input:focus{border-color:#00e6b4;background:rgba(0,230,180,0.15);box-shadow:0 0 15px rgba(0,230,180,0.2)}
+.form-group input::placeholder{color:rgba(255,255,255,0.45)}
+.input-icon{position:absolute;left:15px;top:50%;transform:translateY(-50%);font-size:20px;color:rgba(0,230,180,0.7);pointer-events:none}
+.btn{width:100%;padding:15px;background:linear-gradient(135deg,#00e6b4,#00b4d8);border:none;border-radius:12px;font-size:17px;font-weight:bold;color:#0a1628;cursor:pointer;transition:all 0.3s;box-shadow:0 6px 18px rgba(0,230,180,0.35);text-transform:uppercase;letter-spacing:0.5px;margin-top:10px}
+.btn:hover{transform:translateY(-2px);box-shadow:0 10px 25px rgba(0,230,180,0.5)}
+.btn:active{transform:translateY(0)}
+.error{background:rgba(255,80,80,0.18);padding:14px;border-radius:12px;margin-bottom:20px;text-align:center;border:1px solid rgba(255,80,80,0.35);color:#ff9999;font-size:14px}
+.footer-link{text-align:center;margin-top:25px;padding-top:20px;border-top:1px solid rgba(0,230,180,0.15);font-size:14px}
+.footer-link a{color:#00e6b4;text-decoration:none;font-weight:600;transition:all 0.3s}
+.footer-link a:hover{color:#00b4d8;text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="form-box">
+<div class="logo-container">
+<img src="https://i.postimg.cc/ZKnYHWZF/IMG-1622.jpg" alt="SHOP MINHSANG Logo">
+</div>
+<div class="shop-title">ĐĂNG NHẬP</div>
+{% if error %}<div class="error">❌ {{ error }}</div>{% endif %}
+<form method="post">
+<div class="form-group">
+<span class="input-icon">👤</span>
+<input name="username" type="text" placeholder="Tên đăng nhập" required autofocus>
+</div>
+<div class="form-group">
+<span class="input-icon">🔒</span>
+<input name="password" type="password" placeholder="Mật khẩu" required>
+</div>
+<button type="submit" class="btn">Đăng nhập</button>
+</form>
+<div class="footer-link">
+<span style="color:rgba(255,255,255,0.6)">Chưa có tài khoản? </span>
+<a href="/register">Đăng ký ngay</a>
+</div>
+</div>
+</body>
+</html>

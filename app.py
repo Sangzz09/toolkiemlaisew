@@ -9,11 +9,26 @@ def install(package):
     subprocess.check_call([sys.executable, "-m", "pip", "install", package])
 
 # Auto-install thư viện cần thiết
-for pkg in ["requests", "flask", "flask-cors", "python-dotenv", "nanoid", "python-telegram-bot"]:
+REQUIRED_PACKAGES = [
+    ("requests", "requests"),
+    ("flask", "flask"),
+    ("flask-cors", "flask_cors"),
+    ("python-dotenv", "dotenv"),
+    ("nanoid", "nanoid"),
+    ("python-telegram-bot", "telegram")
+]
+
+for package, module in REQUIRED_PACKAGES:
     try:
-        __import__(pkg.replace("-", "_"))
+        __import__(module)
+        # Kiểm tra kỹ hơn cho telegram bot (cần bản v20+)
+        if module == "telegram":
+            from telegram.ext import Application
     except ImportError:
-        install(pkg)
+        install(package)
+    except Exception as e:
+        print(f"⚠️ Lỗi kiểm tra thư viện {package}: {e}")
+        install(package)
 
 from flask import Flask
 from flask_cors import CORS
@@ -31,26 +46,31 @@ register_routes(app)
 
 # ================== CHẠY CHƯƠNG TRÌNH ==================
 if __name__ == "__main__":
-    print("[START] Đang khởi động SHOP MINHSANG...")
-
-    # Tải lịch sử
-    load_history()
-    load_prediction_history()
-    load_cau_history()
-    print("[OK] Đã tải lịch sử dự đoán và phân tích cầu")
-
-    # Khởi động Telegram bot trong thread riêng
     try:
-        from telegram_bot import run_bot_in_thread, TELEGRAM_AVAILABLE
-        if TELEGRAM_AVAILABLE:
-            bot_thread = threading.Thread(target=run_bot_in_thread, daemon=False)
-            bot_thread.start()
-            print("[OK] Bot Telegram đang chạy song song")
-        else:
-            print("[INFO] Telegram bot bị tắt - chỉ chạy web server")
-    except Exception as e:
-        print(f"[WARNING] Không thể khởi động bot: {e}")
-        print("[INFO] Website vẫn hoạt động bình thường")
+        print("[START] Đang khởi động SHOP MINHSANG...")
 
-    print(f"[START] Flask chạy tại http://0.0.0.0:{PORT}")
-    app.run(host="0.0.0.0", port=PORT, debug=False, use_reloader=False)
+        # Tải lịch sử
+        load_history()
+        load_prediction_history()
+        load_cau_history()
+        print("[OK] Đã tải lịch sử dự đoán và phân tích cầu")
+
+        # Khởi động Telegram bot trong thread riêng
+        try:
+            from telegram_bot import run_bot_in_thread, TELEGRAM_AVAILABLE
+            if TELEGRAM_AVAILABLE:
+                bot_thread = threading.Thread(target=run_bot_in_thread, daemon=True)
+                bot_thread.start()
+                print("[OK] Bot Telegram đang chạy song song")
+            else:
+                print("[INFO] Telegram bot bị tắt - chỉ chạy web server")
+        except Exception as e:
+            print(f"[WARNING] Không thể khởi động bot: {e}")
+            print("[INFO] Website vẫn hoạt động bình thường")
+
+        print(f"[START] Flask chạy tại http://0.0.0.0:{PORT}")
+        app.run(host="0.0.0.0", port=PORT, debug=False, use_reloader=False)
+    except Exception as e:
+        print(f"\n❌ LỖI SERVER NGHIÊM TRỌNG: {e}")
+        print("👉 Vui lòng chụp ảnh màn hình lỗi này và gửi cho admin.")
+        input("Nhấn Enter để thoát...")

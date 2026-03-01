@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tài khoản - SHOP MINHSANG</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#0a1628;color:#fff;min-height:100vh;padding:20px}
+.container{max-width:900px;margin:0 auto}
+.header{display:flex;align-items:center;gap:15px;margin-bottom:30px}
+.back-btn{font-size:28px;color:#00e6b4;text-decoration:none;transition:all 0.3s}
+.back-btn:hover{transform:translateX(-5px)}
+h1{background:linear-gradient(135deg,#00e6b4,#00b4d8);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+h2{color:#00e6b4;font-size:20px;margin:30px 0 15px}
+.info-box{background:rgba(13,31,54,0.95);border-radius:20px;padding:30px;margin-bottom:20px;border:1px solid rgba(0,230,180,0.2);backdrop-filter:blur(20px)}
+.info-item{display:flex;justify-content:space-between;padding:18px 0;border-bottom:1px solid rgba(255,255,255,0.1)}
+.info-item:last-child{border-bottom:none}
+.label{color:#00e6b4;font-weight:600}
+.value{color:#fff;font-weight:500}
+.history-box{background:rgba(13,31,54,0.95);border-radius:20px;padding:25px;border:1px solid rgba(0,230,180,0.2);backdrop-filter:blur(20px);margin-bottom:20px}
+.transaction{display:flex;justify-content:space-between;align-items:center;padding:15px;background:rgba(0,230,180,0.05);border-radius:12px;margin-bottom:12px;border:1px solid rgba(0,230,180,0.1)}
+.transaction:last-child{margin-bottom:0}
+.trans-info{flex:1}
+.trans-type{font-size:14px;color:#00e6b4;font-weight:600;margin-bottom:5px}
+.trans-detail{font-size:13px;color:rgba(255,255,255,0.7)}
+.trans-amount{font-size:18px;font-weight:bold;color:#00ff99}
+.trans-time{font-size:12px;color:rgba(255,255,255,0.5);margin-top:5px}
+.no-history{text-align:center;padding:30px;color:rgba(255,255,255,0.5)}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+<a href="/menu" class="back-btn">←</a>
+<h1>👤 Thông Tin Tài Khoản</h1>
+</div>
+<div class="info-box">
+<div class="info-item"><span class="label"> User ID:</span><span class="value">{{ user_id }}</span></div>
+<div class="info-item"><span class="label">👤 Tên đăng nhập:</span><span class="value">{{ username }}</span></div>
+<div class="info-item"><span class="label">💰 Số dư:</span><span class="value">{{ "{:,}".format(balance) }}đ</span></div>
+<div class="info-item"><span class="label">📅 Ngày tạo:</span><span class="value">{{ created_at }}</span></div>
+</div>
+
+<h2>📜 Lịch Sử Giao Dịch</h2>
+<div class="history-box">
+{% if transactions %}
+{% for trans in transactions %}
+<div class="transaction">
+<div class="trans-info">
+{% if trans.type == 'deposit' %}
+<div class="trans-type">💳 Nạp Tiền</div>
+<div class="trans-detail">Nạp tiền vào tài khoản</div>
+{% elif trans.type == 'buy_key' %}
+<div class="trans-type">🔑 Mua Key</div>
+<div class="trans-detail">Mã: {{ trans.key_code }} | Loại: {{ trans.key_type }}</div>
+{% endif %}
+<div class="trans-time">🕐 {{ trans.time_str }}</div>
+</div>
+<div class="trans-amount">
+{% if trans.type == 'deposit' %}+{% else %}-{% endif %}{{ "{:,}".format(trans.amount) }}đ
+</div>
+</div>
+{% endfor %}
+{% else %}
+<div class="no-history">📭 Chưa có giao dịch nào</div>
+{% endif %}
+</div>
+</div>
+</body>
+</html>

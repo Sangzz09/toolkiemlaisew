@@ -1,11 +1,74 @@
 {
-  "sun": [],
-  "hit": [],
+  "sun": [
+    {
+      "timestamp": 1772253240.0800593,
+      "last_update": 1772253240.08006,
+      "session": "3006254",
+      "prediction": "Tài",
+      "confidence": 0.72,
+      "actual": null,
+      "correct": null,
+      "counted": false
+    },
+    {
+      "timestamp": 1772255675.9001644,
+      "last_update": 1772255675.9001646,
+      "session": "3006291",
+      "prediction": "Tài",
+      "confidence": 0.72,
+      "actual": null,
+      "correct": null,
+      "counted": false
+    }
+  ],
+  "hit": [
+    {
+      "timestamp": 1772253242.9874687,
+      "last_update": 1772253242.98747,
+      "session": "2343480",
+      "prediction": "Tài",
+      "confidence": 0.8059999999999999,
+      "actual": null,
+      "correct": null,
+      "counted": false
+    }
+  ],
   "sum": [],
-  "b52": [],
+  "b52": [
+    {
+      "timestamp": 1772255683.9245214,
+      "last_update": 1772255683.924522,
+      "session": "1798838",
+      "prediction": "Tài",
+      "confidence": 0.508,
+      "actual": null,
+      "correct": null,
+      "counted": false
+    }
+  ],
   "luck8": [
     {
-      "timestamp": 1772187858.0867853,
-      "last_update": 1772187858.8491526,
-      "session": "2602271045",
+      "timestamp": 1772253250.22303,
+      "last_update": 1772253252.8117194,
+      "session": "2602280695",
+      "prediction": "Tài",
+      "confidence": 0.67,
+      "actual": "Tài",
+      "correct": true,
+      "counted": true
+    },
+    {
+      "timestamp": 1772253252.815489,
+      "last_update": 1772253252.815489,
+      "session": "2602280696",
+      "prediction": "Tài",
+      "confidence": 0.67,
+      "actual": null,
+      "correct": null,
+      "counted": false
+    },
+    {
+      "timestamp": 1772255690.78789,
+      "last_update": 1772255690.78789,
+      "session": "2602280736",
       "prediction": 

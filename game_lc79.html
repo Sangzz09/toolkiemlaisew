@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Lc79</title>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  
+  <script>
+    // Hàm chuyển hướng nhanh
+    function redirectToIndex() {
+        // Sử dụng replace để ngăn người dùng quay lại trang tool bằng nút Back
+        window.location.replace('/menu');
+    }
+
+    // Chạy hàm hiện nội dung ngay lập tức
+    document.addEventListener('DOMContentLoaded', () => {
+        document.body.style.display = 'block'; // Hiện body ngay sau khi DOM được tải
+    });
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+    *{box-sizing:border-box;margin:0;padding:0; font-weight: 900 !important;} /* Thêm font-weight 900 cho toàn bộ trang */
+    body{
+      font-family:'Share Tech Mono',monospace;
+      background:radial-gradient(circle at 10% 10%, rgba(0,0,0,0.6), rgba(0,0,0,1));
+      color:#00ff00;height:100vh;overflow:hidden;
+      display: none; /* Mặc định ẩn, sẽ được JS hiện lên ngay */
+    }
+
+    /* --- Overlays (Game Selection) --- */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, #0052D4, #4364F7, #6FB1FC);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 20px;
+      transition: opacity 0.3s ease;
+    }
+
+    /* iframe behind UI */
+    #fullscreenIframe{position:fixed;inset:0;width:100%;height:100%;border:0;z-index:1;}
+
+    /* Main content initially hidden */
+    .panel, #predictionPopup, .footer-text { display: flex; }
+
+    /* Left panel */
+    .panel{
+      position:fixed;left:12px;top:12px;z-index:55;
+      display:flex;flex-direction:column;gap:8px;
+      width:178px; /* ĐÃ SỬA: Giảm 2px từ 180px xuống 178px */
+      font-weight: 900; /* In đậm panel */
+    }
+    .btn{
+      background:rgba(0,255,0,0.09);
+      color:#00ff00;border:1px solid rgba(0,255,0,0.25);
+      padding:6px 8px; /* Giảm padding để nút nhỏ lại */
+      border-radius:8px;font-size:13px;text-align:center;
+      cursor:pointer;transition:0.12s;
+      font-weight: 900; /* In đậm chữ trên nút */
+    }
+    .btn:hover{transform:translateY(-2px)}
+    .btn:disabled{cursor:not-allowed;opacity:0.6;transform:none; font-weight: 900 !important;}
+    .logout-btn{
+      background:linear-gradient(90deg,#2b0000,#700000);color:#fff;border:1px solid #ff3b3b;
+      font-weight: 900; /* In đậm chữ trên nút */
+    }
+
+    /* === Khung nháy và hiệu ứng MỚI của bạn (Đã thêm chút đỏ cho nền) === */
+    .prediction-box {
+      position: fixed;
+      bottom: 120px; 
+      left: 50%;
+      transform: translateX(-50%);
+      /* ĐÃ SỬA: Thêm màu đỏ nổi bật hơn theo yêu cầu */
+      background: linear-gradient(to bottom, #ffeb3b, #ff0000, #ff0000); /* Vàng -> Đỏ (Đỏ chiếm ưu thế hơn) */
+      border-radius: 20px;
+      border: 2px solid #fff;
+      padding: 8px 20px; 
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 15px; 
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      z-index: 99999;
+      cursor: move;
+      touch-action: none;
+      font-weight: 900; /* In đậm khung dự đoán */
+    }
+    
+    .prediction-box .item {
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+    }
+    
+    .prediction-box .label {
+        font-weight:900; 
+        font-size:18px; 
+        margin-bottom:6px; 
+        color:#000;
+    }
+    
+    .prediction-box .circle {
+        width:40px; 
+        height:40px; 
+        border-radius:50%; 
+        border:3px solid #fff; 
+        display:flex; 
+        align-items:center; 
+        justify-content:center; 
+        font-weight:900; /* In đậm số trong vòng tròn */
+        font-size:18px; 
+        opacity:0.2;
+        transition: opacity 0.3s, box-shadow 0.3s, background 0.3s;
+    }
+    
+    /* Màu nháy mới cho TÀI (Giữ nguyên Xanh Lá) */
+    .circle.active.tai {
+      background: #00ff00;
+      opacity:1; 
+      box-shadow:0 0 10px #00ff00, 0 0 20px #00ff00;
+    }
+
+    /* Màu nháy mới cho XỈU (Màu Đỏ) */
+    .circle.active.xiu {
+      background: #ff0000; /* Màu đỏ */
+      opacity:1; 
+      box-shadow:0 0 10px #ff0000, 0 0 20px #ff0000;
+    }
+    
+    .prediction-box .logo {
+        width:55px; 
+        height:auto;
+        margin-bottom: 2px;
+    }
+    
+    .prediction-box .close-btn {
+        position:absolute;
+        top:0px;
+        right:4px;
+        cursor:pointer;
+        font-size:18px;
+        font-weight:900; /* In đậm nút đóng */
+        color:#000;
+    }
+    
+    /* CSS Cập nhật cho thông tin Phiên/Dự đoán/Độ tin cậy */
+    .footer-text{
+        position:fixed;
+        bottom:8px;
+        right:12px; /* Căn phải */
+        font-size:13px;
+        color:#00ff00;
+        text-shadow:0 0 5px #00ff00,0 0 10px #00ff00;
+        z-index:50;
+        display:flex; /* Hiển thị ngang hàng */
+        align-items: center; 
+        justify-content: flex-end;
+        line-height: 1.4;
+        padding: 5px 8px; 
+        background: rgba(0, 0, 0, 0.3); 
+        border-radius: 5px;
+        white-space: nowrap; /* Đảm bảo không xuống dòng */
+        font-weight: 900; /* In đậm footer */
+    }
+
+    /* Keyframe ĐÃ SỬA để nhấp nháy mượt mà hơn (dùng ease-in-out thay vì step-end) */
+    @keyframes textBlinkSmooth {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+    
+    /* Áp dụng hiệu ứng nhấp nháy chữ mượt mà */
+    .blinking-text {
+      animation: textBlinkSmooth 1s ease-in-out infinite; /* Thay step-end bằng ease-in-out */
+    }
+
+    @media(max-width:480px){
+      #predictionPopup{width:200px; height: 90px; right:8px;top:60px} 
+      .prediction-circle { width: 40px; height: 40px; }
+      .dice-icon { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <iframe id="fullscreenIframe" src="https://lc79a.bet" name="fullscreenIframe"></iframe>
+  <div class="panel">
+    <button id="activateBtn" class="btn">Kích Hoạt</button>
+    <button id="logoutBtn" class="btn logout-btn">Quay Về</button>
+  </div>
+  
+  <div id="predictionPopup" class="prediction-box" role="dialog" aria-hidden="true">
+    <div class="item">
+        <span class="label">TÀI</span>
+        <div id="taiCircle" class="circle tai"></div>
+    </div>
+    <img src="https://i.postimg.cc/Xvwzw7fT/3E497BE2-D59F-46D3-BCCF-FDC2E3A9929C.png" alt="Logo" class="logo">
+    <div class="item">
+        <span class="label">XỈU</span>
+        <div id="xiuCircle" class="circle xiu"></div>
+    </div>
+    <span class="close-btn">✖</span>
+  </div>
+
+  <div class="footer-text">
+    <div id="footerInfo" class="blinking-text">
+      Phiên: --- | Dự Đoán: --- | Độ Tin Cậy: ---
+    </div>
+  </div>
+  <script>
+  /* --- Element References --- */
+  const fullscreenIframe = document.getElementById('fullscreenIframe');
+
+  const activateBtn = document.getElementById('activateBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const predictionPopup = document.getElementById('predictionPopup');
+  const footerInfo = document.getElementById('footerInfo');
+  
+  const taiCircle = document.getElementById('taiCircle');
+  const xiuCircle = document.getElementById('xiuCircle');
+  const closePopup = predictionPopup.querySelector('.close-btn');
+
+  /* --- State & Config --- */
+  let fetchIntervalId = null;
+  let blinkIntervalId = null; 
+  let currentSessionId = null; // Biến lưu trữ phiên hiện tại từ API
+  let isAwaitingNewSession = false; // Biến cờ để ngăn fetchPrediction() gọi startPredictionBlink() trong thời gian chờ 6 giây
+  const API_URL = 'https://apilc79-predictor.onrender.com/api/taixiumd5/lc79';
+
+  /* --- Logout Logic (ĐÃ SỬA: Chuyển về dashboardtool.html) --- */
+  logoutBtn.addEventListener('click', () => {
+    window.location.href = '/menu'; // SỬA ĐỔI NÀY
+  });
+
+  /* --- API & Prediction Logic --- */
+
+  // Hàm định dạng kết quả (viết hoa chữ cái đầu)
+  function capitalize(s) {
+    if (!s) return '---';
+    // Đảm bảo chữ cái đầu được viết hoa, phần còn lại viết thường
+    return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+  }
+
+  async function fetchPrediction() {
+    try {
+      const response = await fetch(API_URL);
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      const data = await response.json();
+      console.log("Dữ liệu API:", data);
+
+      const rawPrediction = data.du_doan;
+      const predictedResult = rawPrediction.toLowerCase() === 'tài' ? 'T' : 'X';
+      const nextSessionId = data.phien_hien_tai;
+      const confidence = data.do_tin_cay;
+      
+      // Định dạng lại kết quả (Phiên, Dự đoán, Độ tin cậy)
+      const formattedPrediction = capitalize(rawPrediction);
+      const formattedConfidence = confidence ? `${confidence}%` : '---';
+
+      // Cập nhật thông tin ở góc phải dưới cùng
+      footerInfo.textContent = `Phiên: ${nextSessionId} | Dự Đoán: ${formattedPrediction} | Độ Tin Cậy: ${formattedConfidence}`;
+
+      // Nếu đang trong thời gian chờ 6 giây, không làm gì cả
+      if (isAwaitingNewSession) {
+          console.log(`Đang chờ hết 6 giây cho phiên ${currentSessionId}. Bỏ qua nháy.`);
+          return;
+      }
+      
+      // Xử lý logic nháy
+      if (currentSessionId && currentSessionId !== nextSessionId) {
+        // Hết phiên (Phiên đã thay đổi: 1 -> 2)
+        console.log(`Phiên thay đổi: ${currentSessionId} -> ${nextSessionId}. Bắt đầu ngưng nháy 6 giây.`);
+        stopBlink(); // Dừng nháy cũ ngay lập tức
+        isAwaitingNewSession = true; // Bật cờ chờ
+        currentSessionId = nextSessionId; // Cập nhật phiên mới
+
+        // Bắt đầu nháy sau 6 giây (Đúng nhịp yêu cầu)
+        setTimeout(() => {
+          isAwaitingNewSession = false; // Tắt cờ chờ
+          console.log(`Hết 6 giây. Bắt đầu nháy cho phiên mới: ${currentSessionId}`);
+          // Gọi lại startPredictionBlink với dữ liệu dự đoán mới nhất
+          startPredictionBlink(predictedResult); 
+        }, 6000); 
+      } else if (currentSessionId === null || currentSessionId === nextSessionId) {
+          // Lần đầu chạy HOẶC vẫn trong cùng phiên, Bắt đầu/Tiếp tục nháy
+          currentSessionId = nextSessionId; // Đảm bảo phiên đã được đặt
+          if (!blinkIntervalId) {
+             startPredictionBlink(predictedResult);
+          }
+      } 
+
+    } catch (error) {
+      console.error("Lỗi khi fetch API:", error);
+      footerInfo.textContent = 'Lỗi kết nối API!';
+      stopBlink();
+    }
+  }
+
+  function startPredictionBlink(predictedResult) {
+      // Đảm bảo dừng nháy cũ trước khi bắt đầu cái mới
+      stopBlink(); 
+      
+      const targetCircle = (predictedResult === 'T') ? taiCircle : xiuCircle;
+      const otherCircle = (predictedResult === 'T') ? xiuCircle : taiCircle;
+
+      // Đảm bảo nút còn lại bị tắt
+      otherCircle.classList.remove("active"); 
+
+      // Bắt đầu nháy
+      let isBlinking = true;
+      blinkIntervalId = setInterval(()=>{
+          if(isBlinking){
+              targetCircle.classList.add("active");
+          } else {
+              targetCircle.classList.remove("active");
+          }
+          isBlinking = !isBlinking;
+      }, 500); // Nháy mỗi 0.5 giây
+  }
+
+  function stopBlink(){
+      if(blinkIntervalId){
+          clearInterval(blinkIntervalId);
+          blinkIntervalId = null;
+          taiCircle.classList.remove("active");
+          xiuCircle.classList.remove("active");
+      }
+  }
+
+  activateBtn.addEventListener('click', () => {
+    if (activateBtn.disabled) return; 
+
+    predictionPopup.style.display = 'flex';
+    activateBtn.disabled = true;
+    activateBtn.textContent = 'Đang Chạy';
+
+    // Reset trạng thái khi kích hoạt
+    currentSessionId = null; 
+    isAwaitingNewSession = false;
+    stopBlink(); // Dừng nháy cũ (nếu có)
+
+    // Lấy dự đoán ngay lập tức
+    fetchPrediction(); 
+    // Thiết lập chu kỳ lấy dự đoán mỗi 1 giây (để theo dõi nhịp phiên nhanh và chính xác)
+    fetchIntervalId = setInterval(fetchPrediction, 1000); 
+  });
+
+  closePopup.addEventListener('click', () => {
+    predictionPopup.style.display = 'none';
+    if (fetchIntervalId) {
+      clearInterval(fetchIntervalId);
+      fetchIntervalId = null;
+      activateBtn.disabled = false;
+      activateBtn.textContent = 'Kích Hoạt';
+      stopBlink(); 
+      footerInfo.textContent = 'Phiên: --- | Dự Đoán: --- | Độ Tin Cậy: ---'; // Reset info
+    }
+  });
+
+  /* === Logic Kéo thả (Giữ nguyên và hoạt động mượt mà) === */
+  (function makeDraggable(el){
+    let startX = 0, startY = 0;
+    
+    const dragStart = (e) => {
+        if (e.target.classList.contains("close-btn")) return;
+        e.preventDefault();
+        
+        // Cải tiến: Tính toán vị trí ban đầu của phần tử để kéo mượt hơn
+        const rect = el.getBoundingClientRect();
+        
+        // Lấy tọa độ con trỏ/ngón tay
+        let clientX = e.type.includes("touch") ? e.touches[0].clientX : e.clientX;
+        let clientY = e.type.includes("touch") ? e.touches[0].clientY : e.clientY;
+        
+        // Lưu trữ điểm offset (khoảng cách từ góc trên-trái của phần tử đến con trỏ)
+        startX = clientX - rect.left;
+        startY = clientY - rect.top;
+        
+        // Đặt vị trí tuyệt đối ban đầu nếu chưa có
+        if (el.style.position !== 'fixed' || el.style.transform !== "none") {
+             el.style.left = rect.left + 'px';
+             el.style.top = rect.top + 'px';
+             el.style.position = 'fixed';
+             el.style.right = "auto";
+             el.style.bottom = "auto";
+             el.style.transform = "none"; 
+        }
+
+        document.addEventListener("mousemove", dragging);
+        document.addEventListener("mouseup", dragEnd);
+        document.addEventListener("touchmove", dragging, { passive: false });
+        document.addEventListener("touchend", dragEnd);
+    };
+
+    const dragging = (e) => {
+        let clientX = e.type.includes("touch") ? e.touches[0].clientX : e.clientX;
+        let clientY = e.type.includes("touch") ? e.touches[0].clientY : e.clientY;
+        
+        // Tính toán vị trí mới
+        let newX = clientX - startX;
+        let newY = clientY - startY;
+
+        // Giới hạn trong khung nhìn (tuỳ chọn)
+        const maxX = window.innerWidth - el.offsetWidth;
+        const maxY = window.innerHeight - el.offsetHeight;
+        
+        newX = Math.max(0, Math.min(newX, maxX));
+        newY = Math.max(0, Math.min(newY, maxY));
+        
+        el.style.left = newX + "px";
+        el.style.top = newY + "px";
+        e.preventDefault();
+    };
+
+    const dragEnd = () => {
+        document.removeEventListener("mousemove", dragging);
+        document.removeEventListener("mouseup", dragEnd);
+        document.removeEventListener("touchmove", dragging);
+        document.removeEventListener("touchend", dragEnd);
+    };
+
+    el.addEventListener("mousedown", dragStart);
+    el.addEventListener("touchstart", dragStart);
+  })(predictionPopup);
+  </script>
+</body>
+</html>

@@ -2,7 +2,7 @@
 # ================== config.py ==================
 # Cấu hình chung, VIP, và thao tác với database
 
-import os, json, time, hashlib, subprocess, sys
+import os, json, time, hashlib, subprocess, sys, threading
 from dotenv import load_dotenv
 from nanoid import generate
 
@@ -14,7 +14,7 @@ ADMIN_ID    = int(os.getenv("ADMIN_TELEGRAM_ID", "7219600109"))
 PORT        = int(os.getenv("PORT", os.getenv("FLASK_PORT", "5000")))
 SECRET_KEY  = os.getenv("SECRET_KEY", "secret")
 SHOP_NAME   = "SHOP MINHSANG"
-DATA_FILE   = "data.json"
+DATA_FILE   = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data.json")
 
 # ================== VIP LEVELS CONFIG ==================
 VIP_LEVELS = {
@@ -36,37 +36,41 @@ def get_history_depth(vip_level):
     return VIP_LEVELS.get(vip_level, VIP_LEVELS["Đồng"])["history_depth"]
 
 # ================== DATABASE ==================
+DB_LOCK = threading.Lock()
+
 def load_db():
     default_db = {
         "shop_keys": [], "users": {}, "active": {},
         "blocked_web_login": [], "transactions": [],
         "blocked_telegram_ids": [], "cau_history": {}
     }
-    if not os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "w", encoding="utf-8") as f:
-            json.dump(default_db, f, indent=2, ensure_ascii=False)
-        return default_db
-    try:
-        with open(DATA_FILE, encoding="utf-8") as f:
-            data = json.load(f)
-            if not isinstance(data, dict):
-                raise ValueError("Dữ liệu hỏng")
-            for k, v in default_db.items():
-                if k not in data:
-                    data[k] = v
-            return data
-    except Exception as e:
-        print(f"⚠️ Lỗi đọc data.json: {e}. Đang tạo lại file mới...")
+    with DB_LOCK:
+        if not os.path.exists(DATA_FILE):
+            with open(DATA_FILE, "w", encoding="utf-8") as f:
+                json.dump(default_db, f, indent=2, ensure_ascii=False)
+            return default_db
         try:
-            os.rename(DATA_FILE, f"{DATA_FILE}.bak.{int(time.time())}")
-        except: pass
-        with open(DATA_FILE, "w", encoding="utf-8") as f:
-            json.dump(default_db, f, indent=2, ensure_ascii=False)
-        return default_db
+            with open(DATA_FILE, encoding="utf-8") as f:
+                data = json.load(f)
+                if not isinstance(data, dict):
+                    raise ValueError("Dữ liệu hỏng")
+                for k, v in default_db.items():
+                    if k not in data:
+                        data[k] = v
+                return data
+        except Exception as e:
+            print(f"⚠️ Lỗi đọc data.json: {e}. Đang tạo lại file mới...")
+            try:
+                os.rename(DATA_FILE, f"{DATA_FILE}.bak.{int(time.time())}")
+            except: pass
+            with open(DATA_FILE, "w", encoding="utf-8") as f:
+                json.dump(default_db, f, indent=2, ensure_ascii=False)
+            return default_db
 
 def save_db(db):
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
-        json.dump(db, f, indent=2, ensure_ascii=False)
+    with DB_LOCK:
+        with open(DATA_FILE, "w", encoding="utf-8") as f:
+            json.dump(db, f, indent=2, ensure_ascii=False)
 
 def hash_password(pw):
     return hashlib.sha256(pw.encode()).hexdigest()

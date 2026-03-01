@@ -7,7 +7,7 @@ from collections import Counter
 import requests
 
 # ================== API GAMES ==================
-API_SUN = "https://sunwinsaygex-vd0m.onrender.com/api/sun"
+API_SUN = "https://apisuntcbm.onrender.com/sunlon"
 API_HIT = "https://binhtool-hitpredict.onrender.com/api/taixiu"
 API_SUM = ""  # SumClub đã bỏ
 LOGO_SUNWIN = "https://i.postimg.cc/q7ybsvSb/IMG-1615.jpg"
@@ -16,7 +16,7 @@ LOGO_SUMCLUB = ""
 LOGO_B52 = "https://i.postimg.cc/q7swtZCB/IMG-1617.jpg"
 API_B52A = "https://b52-taixiu-l69b.onrender.com/api/taixiu"
 API_B52B = "https://b52-taixiu-l69b.onrender.com/api/taixiu"
-API_LUCK8 = "https://luck8md5vip.onrender.com/api/taixiu?id="
+API_LUCK8 = "https://luck8md5vippro.onrender.com/api/taixiu?id="
 LOGO_LUCK8 = "https://i.postimg.cc/tg4Pgzzt/IMG-1702.jpg"
 API_SICBO = "https://sicsunnehahahaha.onrender.com/predict"
 LOGO_SICBO = "https://i.postimg.cc/fR36RRwD/IMG-2036.jpg"

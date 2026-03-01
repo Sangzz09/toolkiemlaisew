@@ -89,8 +89,6 @@ CAU_HISTORY = {
 }
 
 # Hàm phân tích và lưu pattern cầu
-from algorithms import *
-
 def analyze_and_save_cau_patterns(h, game_type):
     """Phân tích và lưu các pattern cầu từ lịch sử"""
     if len(h) < 3:
@@ -148,7 +146,7 @@ def load_cau_history():
         if os.path.exists("cau_history.json"):
             with open("cau_history.json") as f:
                 data = json.load(f)
-                for game in ["sun", "hit", "sum", "b52", "sicbo", "789", "68gb", "lc79"]:
+                for game in ["sun", "hit", "sum", "b52", "luck8", "sicbo", "789", "68gb", "lc79"]:
                     if game in data:
                         CAU_HISTORY[game] = data[game]
     except Exception as e:
@@ -162,6 +160,7 @@ def save_history():
             "hit": list(HIST["hit"]),
             "sum": list(HIST["sum"]),
             "b52": list(HIST["b52"]),
+            "luck8": list(HIST["luck8"]),
             "sicbo": list(HIST["sicbo"]),
             "789": list(HIST["789"]),
             "68gb": list(HIST["68gb"]),
@@ -181,8 +180,9 @@ def load_history():
         if os.path.exists("history.json"):
             with open("history.json") as f:
                 data = json.load(f)
-                for game in ["sun", "hit", "sum", "b52", "sicbo", "789", "68gb", "lc79"]:
-                    HIST[game] = deque(data.get(game, []), maxlen=10000)
+                for game in ["sun", "hit", "sum", "b52", "luck8", "sicbo", "789", "68gb", "lc79"]:
+                    maxlen = 30 if game == "luck8" else 10000
+                    HIST[game] = deque(data.get(game, []), maxlen=maxlen)
                     if game in data.get("stats", {}):
                         STATS[game] = data["stats"][game]
     except Exception as e:
@@ -1007,22 +1007,22 @@ def predict(game):
                 "history": get_formatted_history("sun")
             }
 
-        # Lấy dữ liệu từ API với format mới (lowercase keys)
-        # Format: {"phien":2850121,"ket_qua":"Xỉu","tong_xuc_xac":8,"xuc_xac":[6,1,1],"du_doan_tiep_theo":"Xỉu"...}
+        # Lấy dữ liệu từ API (Format mới: xuc_xac_1, xuc_xac_2, tong, du_doan...)
         phien = raw.get("phien")
         ket = normalize(raw.get("ket_qua"))
-        api_du_doan = normalize(raw.get("du_doan_tiep_theo") or raw.get("du_doan"))
+        api_du_doan = normalize(raw.get("du_doan"))
         api_pattern = raw.get("pattern", "")
 
-        # Lấy thêm thông tin bổ sung từ API
-        tong_xuc_xac = raw.get("tong_xuc_xac") or raw.get("tong")
-        xuc_xac = raw.get("xuc_xac", [])
-        if not xuc_xac:
-            x1 = raw.get("xuc_xac_1")
-            x2 = raw.get("xuc_xac_2")
-            x3 = raw.get("xuc_xac_3")
-            if x1 is not None and x2 is not None and x3 is not None:
-                xuc_xac = [x1, x2, x3]
+        # Lấy thông tin xúc xắc và tổng
+        tong_xuc_xac = raw.get("tong")
+        
+        x1 = raw.get("xuc_xac_1")
+        x2 = raw.get("xuc_xac_2")
+        x3 = raw.get("xuc_xac_3")
+        if x1 is not None and x2 is not None and x3 is not None:
+            xuc_xac = [x1, x2, x3]
+        else:
+            xuc_xac = raw.get("xuc_xac", [0, 0, 0])
 
         loai_cau = raw.get("loai_cau", "")
         thuat_toan = raw.get("thuat_toan", "")
@@ -1046,7 +1046,10 @@ def predict(game):
                 print(f"✅ SunWin #{phien}: Lưu kết quả - {ket} | Xúc xắc: {xuc_xac} | Tổng: {tong_xuc_xac}")
 
         # Dự đoán cho phiên tiếp theo (API phiên + 1)
-        phien_tiep_theo = str(int(phien) + 1)
+        try:
+            phien_tiep_theo = str(int(phien) + 1)
+        except:
+            phien_tiep_theo = "---"
 
         # Luôn truyền dự đoán từ API vào analyze để ưu tiên
         du, conf = analyze(list(h), "sun", api_prediction=api_du_doan, api_pattern=api_pattern)
@@ -1371,7 +1374,7 @@ def predict(game):
         raw = safe_json(API_LUCK8)
         if not raw: return None
         
-        phien_data = raw.get("phienHienTai", {})
+        phien_data = raw.get("phienHienTai") or {}
         phien = phien_data.get("phien")
         ket = normalize(phien_data.get("ketqua"))
 
@@ -1404,7 +1407,7 @@ def predict(game):
         if not phien_tiep_theo and phien:
             phien_tiep_theo = str(int(phien) + 1)
             
-        du_doan_data = raw.get("duDoan", {})
+        du_doan_data = raw.get("duDoan") or {}
         api_du = normalize(du_doan_data.get("duDoan"))
         
         # Parse confidence

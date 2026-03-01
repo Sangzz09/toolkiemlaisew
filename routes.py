@@ -5,7 +5,11 @@
 from flask import Blueprint, request, jsonify, redirect, url_for, session, render_template_string
 from config import load_db, save_db, hash_password, create_key, get_vip_level, get_history_depth, VIP_LEVELS, SHOP_NAME, ADMIN_ID, BOT_TOKEN, pending_deposits
 import config
-from templates import *
+from templates import (
+    HTML_REGISTER, HTML_LOGIN, HTML_MENU, HTML_ACCOUNT,
+    HTML_BUY_KEY, HTML_DEPOSIT, HTML_ENTER_KEY,
+    GAME_TEMPLATES
+)
 from predict import predict, get_formatted_history, load_history, save_history, load_prediction_history, record_prediction, update_prediction_results, HIST, PREDICTION_HISTORY, STATS
 from algorithms import safe_json, normalize, API_SUN, API_HIT, API_B52A, API_B52B, API_LUCK8, API_SICBO, API_789, API_68GB, API_LC79
 import time, json, os, requests
@@ -381,25 +385,11 @@ def game(gcode):
         save_db(db)
         return redirect(url_for("main.enter_key", gcode=gcode))
 
-    game_name_map = {
-        "sun": "SunWin",
-        "hit": "HitClub",
-        "b52": "B52",
-        "luck8": "Luck8",
-        "sicbo": "Sicbo SunWin",
-        "789": "789Club",
-        "68gb": "68 Game Bài",
-        "lc79": "LC79"
-    }
-    game_name = game_name_map.get(gcode, "Unknown Game")
+    template = GAME_TEMPLATES.get(gcode)
+    if not template:
+        return redirect(url_for("main.menu"))
 
-    if gcode == "lc79":
-        return render_template_string(HTML_GAME_LC79)
-
-    if gcode == "luck8":
-        return render_template_string(HTML_GAME_LUCK8)
-
-    return render_template_string(HTML_GAME, game=game_name, gcode=gcode)
+    return render_template_string(template)
 
 
 @bp.route("/enter-key/<gcode>", methods=["GET", "POST"])
@@ -443,7 +433,7 @@ def enter_key(gcode):
     error = None
 
     if request.method == "POST":
-        key_code = request.form.get("key_code", "").strip()
+        key_code = request.form.get("key_code", "").strip().upper().replace("`", "").replace(" ", "")
 
         if not key_code:
             error = "Vui lòng nhập mã key"
@@ -456,6 +446,8 @@ def enter_key(gcode):
 
             if not found_key:
                 error = "❌ Mã key không tồn tại"
+                # Debug: In ra console để admin kiểm tra
+                print(f"⚠️ User nhập: '{key_code}' - Không tìm thấy trong {len(db['shop_keys'])} keys hiện có.")
             elif found_key["status"] == "blocked":
                 error = "❌ Key này đã bị khóa"
             elif found_key["usedBy"]:

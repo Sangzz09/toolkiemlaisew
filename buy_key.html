@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mua Key - SHOP MINHSANG</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#0a1628;color:#fff;min-height:100vh;padding:20px}
+.container{max-width:1200px;margin:0 auto}
+.header{display:flex;align-items:center;gap:15px;margin-bottom:30px}
+.back-btn{font-size:28px;color:#00e6b4;text-decoration:none;transition:all 0.3s}
+.back-btn:hover{transform:translateX(-5px)}
+h1{background:linear-gradient(135deg,#00e6b4,#00b4d8);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.balance-info{text-align:center;margin-bottom:30px;padding:20px;background:rgba(13,31,54,0.9);border-radius:16px;border:1px solid rgba(0,230,180,0.2)}
+.balance-info h3{color:#00e6b4;font-size:24px}
+.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:30px}
+.price-card{background:rgba(13,31,54,0.95);border-radius:20px;padding:30px;text-align:center;border:1px solid rgba(0,230,180,0.2);transition:all 0.3s}
+.price-card:hover{transform:translateY(-8px);border-color:#00e6b4;box-shadow:0 20px 40px rgba(0,230,180,0.3)}
+.duration{font-size:20px;color:#00e6b4;margin-bottom:15px;font-weight:bold}
+.price{font-size:36px;color:#fff;margin-bottom:20px;font-weight:bold;background:linear-gradient(135deg,#00e6b4,#00b4d8);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.buy-btn{width:100%;padding:15px;background:linear-gradient(135deg,#00e6b4,#00b4d8);color:#0a1628;border:none;border-radius:12px;font-size:16px;font-weight:bold;cursor:pointer;margin-top:20px;transition:all 0.3s;box-shadow:0 8px 20px rgba(0,230,180,0.3)}
+.buy-btn:hover{transform:scale(1.05);box-shadow:0 12px 30px rgba(0,230,180,0.5)}
+.error{background:rgba(255,80,80,0.15);padding:14px;border-radius:12px;margin-bottom:20px;text-align:center;border:1px solid rgba(255,80,80,0.3);color:#ff8888}
+.success{background:rgba(0,230,180,0.15);padding:14px;border-radius:12px;margin-bottom:20px;text-align:center;border:1px solid rgba(0,230,180,0.3);color:#00e6b4}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+<a href="/menu" class="back-btn">←</a>
+<h1>💎 Bảng Giá Key</h1>
+</div>
+{% if error %}<div class="error">{{ error }}</div>{% endif %}
+{% if success %}<div class="success">{{ success|safe }}</div>{% endif %}
+<div class="balance-info">
+<h3>💰 Số dư hiện tại: {{ "{:,}".format(balance) }}đ</h3>
+</div>
+<div class="pricing-grid">
+<div class="price-card">
+<div class="duration">⏰ 1 Ngày</div>
+<div class="price">40.000đ</div>
+<form method="post" style="margin:0">
+<input type="hidden" name="key_type" value="1d">
+<input type="hidden" name="price" value="40000">
+<button type="submit" class="buy-btn">Mua Ngay</button>
+</form>
+</div>
+<div class="price-card">
+<div class="duration">📅 1 Tuần</div>
+<div class="price">120.000đ</div>
+<form method="post" style="margin:0">
+<input type="hidden" name="key_type" value="1t">
+<input type="hidden" name="price" value="120000">
+<button type="submit" class="buy-btn">Mua Ngay</button>
+</form>
+</div>
+<div class="price-card">
+<div class="duration">📆 1 Tháng</div>
+<div class="price">200.000đ</div>
+<form method="post" style="margin:0">
+<input type="hidden" name="key_type" value="1thang">
+<input type="hidden" name="price" value="200000">
+<button type="submit" class="buy-btn">Mua Ngay</button>
+</form>
+</div>
+<div class="price-card">
+<div class="duration">♾️ Vĩnh Viễn</div>
+<div class="price">400.000đ</div>
+<form method="post" style="margin:0">
+<input type="hidden" name="key_type" value="vv">
+<input type="hidden" name="price" value="400000">
+<button type="submit" class="buy-btn">Mua Ngay</button>
+</form>
+</div>
+</div>
+</div>
+</body>
+</html>

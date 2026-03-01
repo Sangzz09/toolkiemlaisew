@@ -20,16 +20,19 @@
       "vip_exp": 0,
       "total_predictions": 0,
       "correct_predictions": 0
+    },
+    "admin": {
+      "user_id": "0AJ5VT33LF",
+      "password": "bcb15f821479b4d5772bd0ca866c00ad5f926e3580720659cc80d39c9d09802a",
+      "balance": 0,
+      "created_at": 1772325159.4796603,
+      "vip_level": "Đồng",
+      "vip_exp": 0,
+      "total_predictions": 0,
+      "correct_predictions": 0
     }
   },
-  "active": {
-    "sang": {
-      "code": "LK-HC5JVGKR",
-      "type": "LK",
-      "expiresAt": 1772266506.6406953,
-      "activatedAt": 1772180136.605678
-    }
-  },
+  "active": {},
   "blocked_web_login": [],
   "transactions": [],
   "blocked_telegram_ids": [],
