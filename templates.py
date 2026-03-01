@@ -1,30 +1,22 @@
 # -*- coding: utf-8 -*-
 # ================== templates.py ==================
 # Load HTML templates từ các file riêng biệt
+# FIX: Tất cả file HTML nằm ở thư mục gốc (không có thư mục con templates/)
 
 import os
 
-# Thư mục gốc (nơi chứa templates.py và các file game HTML)
+# Thư mục gốc (nơi chứa tất cả file HTML)
 _root = os.path.dirname(os.path.abspath(__file__))
 
-# Thư mục chứa các page template thông thường
-_tpl_dir = os.path.join(_root, 'templates')
-
-def _load(filename, subdir=True):
-    """Load file HTML. subdir=True → tìm trong /templates/, False → tìm ở thư mục gốc."""
-    folder = _tpl_dir if subdir else _root
-    path = os.path.join(folder, filename)
+def _load(filename):
+    """Load file HTML từ thư mục gốc."""
+    path = os.path.join(_root, filename)
     if not os.path.exists(path):
-        # Fallback: thử tìm ở cả 2 nơi
-        alt = os.path.join(_root if subdir else _tpl_dir, filename)
-        if os.path.exists(alt):
-            path = alt
-        else:
-            raise FileNotFoundError(f"Không tìm thấy template: {filename}")
+        raise FileNotFoundError(f"Không tìm thấy template: {filename} (đường dẫn: {path})")
     with open(path, encoding='utf-8') as f:
         return f.read()
 
-# ── Page templates (nằm trong thư mục templates/) ──────────────────────────
+# ── Page templates ──────────────────────────────────────────────────────────
 HTML_REGISTER       = _load('register.html')
 HTML_LOGIN          = _load('login.html')
 HTML_MENU           = _load('menu.html')
@@ -34,15 +26,15 @@ HTML_DEPOSIT        = _load('deposit.html')
 HTML_DEPOSIT_SEPAY  = HTML_DEPOSIT   # alias
 HTML_ENTER_KEY      = _load('enter_key.html')
 
-# ── Game templates (nằm ở thư mục gốc, cùng cấp với templates.py) ──────────
-HTML_GAME_SUN       = _load('game_sun.html',   subdir=False)
-HTML_GAME_HIT       = _load('game_hit.html',   subdir=False)
-HTML_GAME_B52       = _load('game_b52.html',   subdir=False)
-HTML_GAME_SICBO     = _load('game_sicbo.html', subdir=False)
-HTML_GAME_789       = _load('game_789.html',   subdir=False)
-HTML_GAME_68GB      = _load('game_68gb.html',  subdir=False)
-HTML_GAME_LUCK8     = _load('game_luck8.html', subdir=False)
-HTML_GAME_LC79      = _load('game_lc79.html',  subdir=False)
+# ── Game templates ──────────────────────────────────────────────────────────
+HTML_GAME_SUN       = _load('game_sun.html')
+HTML_GAME_HIT       = _load('game_hit.html')
+HTML_GAME_B52       = _load('game_b52.html')
+HTML_GAME_SICBO     = _load('game_sicbo.html')
+HTML_GAME_789       = _load('game_789.html')
+HTML_GAME_68GB      = _load('game_68gb.html')
+HTML_GAME_LUCK8     = _load('game_luck8.html')
+HTML_GAME_LC79      = _load('game_lc79.html')
 
 # ── Map gcode → template (dùng trong route /game/<gcode>) ──────────────────
 GAME_TEMPLATES = {

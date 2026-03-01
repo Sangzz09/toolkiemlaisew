@@ -12,9 +12,11 @@ load_dotenv()
 BOT_TOKEN   = os.getenv("BOT_TOKEN", "8297499534:AAGUPJfvoaxsCmbC-SnjIMxf5nm2vnNxlNA")
 ADMIN_ID    = int(os.getenv("ADMIN_TELEGRAM_ID", "7219600109"))
 PORT        = int(os.getenv("PORT", os.getenv("FLASK_PORT", "5000")))
-SECRET_KEY  = os.getenv("SECRET_KEY", "secret")
+SECRET_KEY  = os.getenv("SECRET_KEY", "minhsang_shop_secret_2024_xK9p")
 SHOP_NAME   = "SHOP MINHSANG"
-DATA_FILE   = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data.json")
+# FIX: Dùng thư mục chứa file thực thi để đảm bảo đúng đường dẫn trên mọi môi trường
+_BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
+DATA_FILE   = os.path.join(_BASE_DIR, "data.json")
 
 # ================== VIP LEVELS CONFIG ==================
 VIP_LEVELS = {

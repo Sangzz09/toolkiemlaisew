@@ -13,6 +13,7 @@ from templates import (
 from predict import predict, get_formatted_history, load_history, save_history, load_prediction_history, record_prediction, update_prediction_results, HIST, PREDICTION_HISTORY, STATS
 from algorithms import safe_json, normalize, API_SUN, API_HIT, API_B52A, API_B52B, API_LUCK8, API_SICBO, API_789, API_68GB, API_LC79
 import time, json, os, requests
+import time, json, os, requests, re
 from nanoid import generate
 
 bp = Blueprint('main', __name__)
@@ -434,6 +435,9 @@ def enter_key(gcode):
 
     if request.method == "POST":
         key_code = request.form.get("key_code", "").strip().upper().replace("`", "").replace(" ", "")
+        raw_input = request.form.get("key_code", "").strip().upper()
+        # Dùng Regex xóa sạch mọi ký tự không phải chữ, số, gạch ngang (xóa cả dấu cách, tab, xuống dòng, dấu `)
+        key_code = re.sub(r'[^A-Z0-9-]', '', raw_input)
 
         if not key_code:
             error = "Vui lòng nhập mã key"
@@ -520,7 +524,7 @@ def save_luck8_history_api():
             return jsonify({"ok": False, "error": "No history data"})
 
         # Lưu lịch sử vào file để phân tích
-        history_file = "luck8_analysis_history.json"
+        history_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "luck8_analysis_history.json")
         import os
         try:
             if os.path.exists(history_file):

@@ -5,8 +5,13 @@
 import os, json, time, random
 from collections import deque
 from datetime import datetime
-from config import DATA_FILE
+from config import DATA_FILE, _BASE_DIR
 from algorithms import *
+
+# Đường dẫn các file lịch sử
+HISTORY_FILE     = os.path.join(_BASE_DIR, "history.json")
+PRED_HISTORY_FILE = os.path.join(_BASE_DIR, "prediction_history.json")
+CAU_HISTORY_FILE  = os.path.join(_BASE_DIR, "cau_history.json")
 HIST = {
     "sun": deque(maxlen=10000),
     "hit": deque(maxlen=10000),
@@ -135,7 +140,7 @@ def analyze_and_save_cau_patterns(h, game_type):
 # Hàm lưu lịch sử cầu
 def save_cau_history():
     try:
-        with open("cau_history.json", "w") as f:
+        with open(CAU_HISTORY_FILE, "w") as f:
             json.dump(CAU_HISTORY, f, ensure_ascii=False, indent=2)
     except Exception as e:
         print(f"Lỗi lưu lịch sử cầu: {e}")
@@ -143,8 +148,8 @@ def save_cau_history():
 # Hàm tải lịch sử cầu
 def load_cau_history():
     try:
-        if os.path.exists("cau_history.json"):
-            with open("cau_history.json") as f:
+        if os.path.exists(CAU_HISTORY_FILE):
+            with open(CAU_HISTORY_FILE) as f:
                 data = json.load(f)
                 for game in ["sun", "hit", "sum", "b52", "luck8", "sicbo", "789", "68gb", "lc79"]:
                     if game in data:
@@ -168,7 +173,7 @@ def save_history():
             "stats": STATS,
             "last_update": time.time()
         }
-        with open("history.json", "w") as f:
+        with open(HISTORY_FILE, "w") as f:
             json.dump(history_data, f, ensure_ascii=False, indent=2)
     except Exception as e:
         print(f"Lỗi lưu lịch sử: {e}")
@@ -177,8 +182,8 @@ def save_history():
 # Hàm tải lịch sử
 def load_history():
     try:
-        if os.path.exists("history.json"):
-            with open("history.json") as f:
+        if os.path.exists(HISTORY_FILE):
+            with open(HISTORY_FILE) as f:
                 data = json.load(f)
                 for game in ["sun", "hit", "sum", "b52", "luck8", "sicbo", "789", "68gb", "lc79"]:
                     maxlen = 30 if game == "luck8" else 10000
@@ -203,7 +208,7 @@ def save_prediction_history():
             "lc79": list(PREDICTION_HISTORY["lc79"]),
             "last_update": time.time()
         }
-        with open("prediction_history.json", "w") as f:
+        with open(PRED_HISTORY_FILE, "w") as f:
             json.dump(pred_data, f, ensure_ascii=False, indent=2)
     except Exception as e:
         print(f"Lỗi lưu lịch sử dự đoán: {e}")
@@ -211,8 +216,8 @@ def save_prediction_history():
 # Hàm tải lịch sử dự đoán
 def load_prediction_history():
     try:
-        if os.path.exists("prediction_history.json"):
-            with open("prediction_history.json") as f:
+        if os.path.exists(PRED_HISTORY_FILE):
+            with open(PRED_HISTORY_FILE) as f:
                 data = json.load(f)
                 for game in ["sun", "hit", "sum", "b52", "luck8", "sicbo", "789", "68gb", "lc79"]:
                     PREDICTION_HISTORY[game] = deque(data.get(game, []), maxlen=10)

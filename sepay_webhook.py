@@ -3,7 +3,7 @@
 # Đặt file này ngang hàng với app.py
 
 import time, json, os, random, string, requests
-from config import load_db, save_db, BOT_TOKEN, ADMIN_ID
+from config import load_db, save_db, BOT_TOKEN, ADMIN_ID, _BASE_DIR
 
 # ======= CẤU HÌNH NGÂN HÀNG =======
 BANK_NAME    = "MBBank"
@@ -12,7 +12,7 @@ BANK_OWNER   = "TRAN MINH SANG"
 WEBHOOK_SECRET = ""  # Không dùng xác thực
 # ===================================
 
-PENDING_FILE = "pending_deposits_sepay.json"
+PENDING_FILE = os.path.join(_BASE_DIR, "pending_deposits_sepay.json")
 
 def _load():
     if not os.path.exists(PENDING_FILE):
