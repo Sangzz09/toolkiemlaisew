@@ -33,9 +33,14 @@ def create_deposit_order(username: str, amount: int) -> str:
     # Xóa đơn cũ của user
     for k in [k for k, v in pending.items() if v.get("username") == username]:
         del pending[k]
-    rand    = ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
+    rand    = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
     content = f"NAP {username} {rand}"
-    pending[content] = {"username": username, "amount": amount, "created_at": time.time()}
+    pending[content] = {
+        "username": username, 
+        "amount": amount, 
+        "created_at": time.time(),
+        "code": rand
+    }
     _save(pending)
     return content
 
@@ -79,7 +84,18 @@ def process_sepay_webhook(payload: dict) -> dict:
     # Tìm đơn khớp nội dung CK
     matched_key = matched_order = None
     for key, order in pending.items():
+        # Cách 1: Khớp cả cụm (NAP user code)
         if key.upper() in content.upper():
+            matched_key, matched_order = key, order
+            break
+        
+        # Cách 2: Khớp mã code riêng lẻ (phòng trường hợp user quên ghi NAP)
+        code = order.get("code")
+        if not code: # Fallback cho data cũ
+            parts = key.split()
+            if parts: code = parts[-1]
+        
+        if code and len(code) >= 5 and code.upper() in content.upper():
             matched_key, matched_order = key, order
             break
 
