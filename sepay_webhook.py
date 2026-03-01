@@ -62,14 +62,22 @@ def process_sepay_webhook(payload: dict) -> dict:
     if payload.get("transferType") != "in":
         return {"success": True, "message": "ignored"}
 
-    amount   = int(payload.get("transferAmount", 0))
+    # Fix lỗi số tiền dạng string hoặc float (vd: "10000.00")
+    try:
+        amount = int(float(str(payload.get("transferAmount", 0))))
+    except:
+        amount = 0
+        
     content  = (payload.get("content") or payload.get("description") or "").strip()
     txn_id   = str(payload.get("id", ""))
     gateway  = payload.get("gateway", "")
     acct     = payload.get("accountNumber", "")
     txn_date = payload.get("transactionDate", "")
 
+    print(f"\n[SEPAY DEBUG] Nhận Webhook: {amount:,}đ | Content: {content} | ID: {txn_id}")
+
     if not content or amount <= 0:
+        print("[SEPAY DEBUG] ❌ Lỗi: Thiếu nội dung hoặc số tiền <= 0")
         return {"success": False, "message": "missing content or amount"}
 
     # Dọn đơn hết hạn (15 phút)
@@ -100,6 +108,8 @@ def process_sepay_webhook(payload: dict) -> dict:
             break
 
     if not matched_order:
+        print(f"[SEPAY DEBUG] ❌ Không tìm thấy đơn khớp với nội dung: {content}")
+        print(f"              👉 Danh sách đơn chờ: {list(pending.keys())}")
         _notify(f"⚠️ NHẬN {amount:,}đ - KHÔNG KHỚP ĐƠN\n📝 {content}\n🏦 {gateway} | {acct}")
         return {"success": True, "message": "no matching order"}
 
@@ -109,9 +119,11 @@ def process_sepay_webhook(payload: dict) -> dict:
     db       = load_db()
     done_ids = [t.get("sepay_txn_id") for t in db.get("transactions", []) if t.get("sepay_txn_id")]
     if txn_id and txn_id in done_ids:
+        print(f"[SEPAY DEBUG] ⚠️ Giao dịch {txn_id} đã được xử lý trước đó. Bỏ qua.")
         return {"success": True, "message": "already processed"}
 
     if username not in db["users"]:
+        print(f"[SEPAY DEBUG] ❌ User {username} không tồn tại trong DB")
         return {"success": False, "message": f"user {username} not found"}
 
     # Cộng tiền
@@ -152,6 +164,7 @@ def process_sepay_webhook(payload: dict) -> dict:
             f"Cảm ơn bạn đã sử dụng SHOP MINHSANG! 🙏"
         )
     print(f"[SEPAY] ✅ {username} +{amount:,}đ | TxnID={txn_id}")
+    print(f"[SEPAY DEBUG] ✅ ĐÃ CỘNG TIỀN: {username} +{amount:,}đ | Số dư mới: {new_balance:,}đ")
     return {"success": True, "message": f"deposited {amount} for {username}"}
 
 
