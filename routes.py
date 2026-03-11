@@ -418,6 +418,12 @@ def game(gcode):
     if not template:
         return redirect(url_for("main.menu"))
 
+    # FIX: Tự động cập nhật link iframe Sunwin/Sicbo mới nhất
+    if gcode in ['sun', 'sicbo']:
+        template = template.replace("web.sunwin.lt", "web.sunwin.id")
+        template = template.replace("web.sunwin.gg", "web.sunwin.id")
+        template = template.replace("web.sunwin.pw", "web.sunwin.id")
+
     return render_template_string(template)
 
 
@@ -444,7 +450,8 @@ def enter_key(gcode):
         "sicbo": "Sicbo SunWin",
         "789": "789Club",
         "68gb": "68 Game Bài",
-        "lc79": "LC79"
+        "lc79": "LC79",
+        "sexy": "BCR Sexy"
     }
     game_name = game_name_map.get(gcode, "Unknown Game")
     game_logo_map = {
@@ -455,7 +462,8 @@ def enter_key(gcode):
         "sicbo": "https://i.postimg.cc/5tLC4p8q/IMG-2048.jpg",
         "789": "https://i.postimg.cc/43HWjS37/789.webp",
         "68gb": "https://i.postimg.cc/zDQVG2DG/OIP.webp",
-        "lc79": "https://i.postimg.cc/vTSzPJnm/lc79.webp"
+        "lc79": "https://i.postimg.cc/vTSzPJnm/lc79.webp",
+        "sexy": "https://i.postimg.cc/j28zwGJf/sexy-baccarat.jpg"
     }
     game_logo = game_logo_map.get(gcode, "")
 

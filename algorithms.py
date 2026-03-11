@@ -8,7 +8,7 @@ import requests
 
 # ================== API GAMES ==================
 API_SUN = "https://apisuntcbm.onrender.com/sunlon"
-LINK_SUN = "https://web.sunwin.lt/?affId=Sunwin"
+LINK_SUN = "https://web.sunwin.id/?affId=Sunwin"
 API_HIT = "https://binhtool-hitpredict.onrender.com/api/taixiu"
 API_SUM = ""  # SumClub đã bỏ
 LOGO_SUNWIN = "https://i.postimg.cc/q7ybsvSb/IMG-1615.jpg"
@@ -20,7 +20,7 @@ API_B52B = "https://b52-taixiu-l69b.onrender.com/api/taixiu"
 API_LUCK8 = "https://luck8md5vippro.onrender.com/api/taixiu?id="
 LOGO_LUCK8 = "https://i.postimg.cc/tg4Pgzzt/IMG-1702.jpg"
 API_SICBO = "https://sicsunnehahahaha.onrender.com/predict"
-LINK_SICBO = "https://web.sunwin.lt/?affId=Sunwin"
+LINK_SICBO = "https://web.sunwin.id/?affId=Sunwin"
 LOGO_SICBO = "https://i.postimg.cc/fR36RRwD/IMG-2036.jpg"
 API_789 = "https://api789hix.hacksieucap.pro/taixiuv3"
 LOGO_789 = "https://i.postimg.cc/43HWjS37/789.webp"

@@ -1,7 +1,78 @@
 {
-  "shop_keys": [],
-  "users": {},
-  "active": {},
+  "shop_keys": [
+    {
+      "code": "LK-YXCQVUMF",
+      "type": "LK",
+      "price": 0,
+      "createdAt": 1772797076.458107,
+      "expiresAt": 1772883476.458107,
+      "status": "available",
+      "usedBy": null
+    },
+    {
+      "code": "LK-0ODOS0PK",
+      "type": "LK",
+      "price": 0,
+      "createdAt": 1773244854.5909696,
+      "expiresAt": 1773331254.5909696,
+      "status": "used",
+      "usedBy": "minhsang"
+    },
+    {
+      "code": "LK-DOKILT_Q",
+      "type": "LK",
+      "price": 0,
+      "createdAt": 1773245417.3153944,
+      "expiresAt": 1773331817.3153944,
+      "status": "available",
+      "usedBy": null
+    },
+    {
+      "code": "LK-7ZNTTUF8",
+      "type": "LK",
+      "price": 0,
+      "createdAt": 1773245425.714622,
+      "expiresAt": 1773331825.714622,
+      "status": "used",
+      "usedBy": "sang"
+    }
+  ],
+  "users": {
+    "minhsang": {
+      "user_id": "04FK7LZTTV",
+      "password": "bcb15f821479b4d5772bd0ca866c00ad5f926e3580720659cc80d39c9d09802a",
+      "balance": 0,
+      "created_at": 1773244843.718677,
+      "vip_level": "Đồng",
+      "vip_exp": 0,
+      "total_predictions": 0,
+      "correct_predictions": 0
+    },
+    "sang": {
+      "user_id": "E4YZGHMUID",
+      "password": "bcb15f821479b4d5772bd0ca866c00ad5f926e3580720659cc80d39c9d09802a",
+      "balance": 0,
+      "created_at": 1773245406.104369,
+      "vip_level": "Đồng",
+      "vip_exp": 0,
+      "total_predictions": 0,
+      "correct_predictions": 0
+    }
+  },
+  "active": {
+    "minhsang": {
+      "code": "LK-0ODOS0PK",
+      "type": "LK",
+      "expiresAt": 1773331254.5909696,
+      "activatedAt": 1773244857.9330287
+    },
+    "sang": {
+      "code": "LK-7ZNTTUF8",
+      "type": "LK",
+      "expiresAt": 1773331825.714622,
+      "activatedAt": 1773245430.9075947
+    }
+  },
   "blocked_web_login": [],
   "transactions": [],
   "blocked_telegram_ids": [],

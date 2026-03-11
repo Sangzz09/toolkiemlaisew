@@ -1,20 +1,60 @@
 {
   "sun": [
     {
-      "timestamp": 1772253240.0800593,
-      "last_update": 1772253240.08006,
-      "session": "3006254",
-      "prediction": "T�i",
+      "timestamp": 1773244859.0026422,
+      "last_update": 1773244859.0026422,
+      "session": "3020422",
+      "prediction": "Tài",
+      "confidence": 0.78,
+      "actual": null,
+      "correct": null,
+      "counted": false
+    },
+    {
+      "timestamp": 1773245379.437277,
+      "last_update": 1773245437.4948099,
+      "session": "3020430",
+      "prediction": "Xỉu",
+      "confidence": 0.72,
+      "actual": "Xỉu",
+      "correct": true,
+      "counted": true
+    },
+    {
+      "timestamp": 1773245437.4962077,
+      "last_update": 1773245437.496208,
+      "session": "3020431",
+      "prediction": "Tài",
       "confidence": 0.72,
       "actual": null,
       "correct": null,
       "counted": false
     },
     {
-      "timestamp": 1772255675.9001644,
-      "last_update": 1772255675.9001646,
-      "session": "3006291",
-      "prediction": "T�i",
+      "timestamp": 1773245643.7156067,
+      "last_update": 1773245647.4412134,
+      "session": "3020433",
+      "prediction": "Tài",
+      "confidence": 0.72,
+      "actual": "Tài",
+      "correct": true,
+      "counted": true
+    },
+    {
+      "timestamp": 1773245647.4449902,
+      "last_update": 1773245647.4449904,
+      "session": "3020434",
+      "prediction": "Tài",
+      "confidence": 0.72,
+      "actual": null,
+      "correct": null,
+      "counted": false
+    },
+    {
+      "timestamp": 1773245810.6467774,
+      "last_update": 1773245810.6467776,
+      "session": "3020436",
+      "prediction": "Tài",
       "confidence": 0.72,
       "actual": null,
       "correct": null,
@@ -23,52 +63,64 @@
   ],
   "hit": [
     {
-      "timestamp": 1772253242.9874687,
-      "last_update": 1772253242.98747,
-      "session": "2343480",
-      "prediction": "T�i",
-      "confidence": 0.8059999999999999,
+      "timestamp": 1773245671.971541,
+      "last_update": 1773245671.971541,
+      "session": "2358944",
+      "prediction": "Tài",
+      "confidence": 0.721,
+      "actual": null,
+      "correct": null,
+      "counted": false
+    },
+    {
+      "timestamp": 1773245814.632851,
+      "last_update": 1773245814.6328514,
+      "session": "2358946",
+      "prediction": "Tài",
+      "confidence": 0.579,
       "actual": null,
       "correct": null,
       "counted": false
     }
   ],
   "sum": [],
-  "b52": [
+  "b52": [],
+  "luck8": [],
+  "sicbo": [
     {
-      "timestamp": 1772255683.9245214,
-      "last_update": 1772255683.924522,
-      "session": "1798838",
-      "prediction": "T�i",
-      "confidence": 0.508,
+      "timestamp": 1773245459.549259,
+      "last_update": 1773245465.8882918,
+      "session": "2458117",
+      "prediction": "Tài",
+      "confidence": 0.75,
+      "actual": "Tài",
+      "correct": true,
+      "counted": true
+    },
+    {
+      "timestamp": 1773245465.8907623,
+      "last_update": 1773245465.8907628,
+      "session": "2458118",
+      "prediction": "Xỉu",
+      "confidence": 0.75,
+      "actual": null,
+      "correct": null,
+      "counted": false
+    },
+    {
+      "timestamp": 1773245817.0049589,
+      "last_update": 1773245817.0049596,
+      "session": "2458123",
+      "prediction": "Xỉu",
+      "confidence": 0.75,
       "actual": null,
       "correct": null,
       "counted": false
     }
   ],
-  "luck8": [
-    {
-      "timestamp": 1772253250.22303,
-      "last_update": 1772253252.8117194,
-      "session": "2602280695",
-      "prediction": "T�i",
-      "confidence": 0.67,
-      "actual": "T�i",
-      "correct": true,
-      "counted": true
-    },
-    {
-      "timestamp": 1772253252.815489,
-      "last_update": 1772253252.815489,
-      "session": "2602280696",
-      "prediction": "T�i",
-      "confidence": 0.67,
-      "actual": null,
-      "correct": null,
-      "counted": false
-    },
-    {
-      "timestamp": 1772255690.78789,
-      "last_update": 1772255690.78789,
-      "session": "2602280736",
-      "prediction": 
+  "789": [],
+  "68gb": [],
+  "lc79": [],
+  "sexy": [],
+  "last_update": 1773245817.0050712
+}

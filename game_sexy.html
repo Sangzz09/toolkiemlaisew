@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>AE Baccarat - Chọn bàn & Dự đoán</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <script src="https://unpkg.com/@dotlottie/player-component@latest/dist/dotlottie-player.mjs" type="module"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel-bg: #0b1220;
+      --card-bg: #0f172a;
+      --border: rgba(255,255,255,.10);
+      --accent: #38bdf8;
+      --text: #fff;
+      --text-dim: rgba(255,255,255,.7);
+      --robot-size: 110px;
+      --bubble-min: 140px;
+      --bubble-max: 320px;
+    }
+
+    html, body {
+      height: 100%; margin: 0; padding: 0; overflow: hidden;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    /* ── Game Container ── */
+    .game-container {
+      position: relative; width: 100vw; height: 100vh;
+      overflow: hidden; background: var(--bg);
+    }
+    .game-frame {
+      width: 100vw; height: 100vh; border: 0; display: block;
+    }
+
+    /* ── Hamburger ── */
+    .hamburger-btn {
+      position: fixed; top: 12px; right: 12px; z-index: 170;
+      min-width: 48px; min-height: 48px; padding: 12px; box-sizing: border-box;
+      border-radius: 12px;
+      background: rgba(15,23,42,.95); border: 1px solid rgba(255,255,255,.15);
+      color: #fff; font-size: 24px; line-height: 1; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,.3);
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation; user-select: none;
+      transition: background .15s;
+    }
+    .hamburger-btn:hover, .hamburger-btn:active {
+      background: rgba(30,41,59,.95);
+    }
+    @media (max-width: 480px) {
+      .hamburger-btn { min-width: 52px; min-height: 52px; top: 10px; right: 10px; font-size: 26px; padding: 14px; }
+    }
+
+    /* ── Side Panel ── */
+    .ae-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.4); z-index: 184; display: none;
+    }
+    .ae-overlay.show { display: block; }
+
+    .ae-panel {
+      position: fixed; right: 0; top: 0;
+      width: 320px; max-width: 95vw; height: 100vh;
+      background: var(--panel-bg);
+      border-left: 1px solid var(--border);
+      z-index: 185; display: none; flex-direction: column;
+      box-shadow: -8px 0 24px rgba(0,0,0,.4);
+      transition: transform .25s ease;
+    }
+    .ae-panel.open { display: flex; }
+
+    .ae-panel h2 {
+      margin: 0; padding: 14px 16px; font-size: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .ae-panel .link-section {
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+    }
+    .ae-panel .link-section label {
+      display: block; font-size: 12px; opacity: .9; margin-bottom: 6px;
+    }
+    .ae-panel .link-section input {
+      width: 100%; box-sizing: border-box;
+      padding: 8px 10px; border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--card-bg); color: #fff; font-size: 13px;
+    }
+    .ae-panel .link-section button {
+      margin-top: 8px; padding: 8px 14px; border-radius: 8px;
+      border: 1px solid var(--accent);
+      background: rgba(56,189,248,.2); color: var(--accent);
+      cursor: pointer; font-weight: 600; transition: background .15s;
+    }
+    .ae-panel .link-section button:hover {
+      background: rgba(56,189,248,.35);
+    }
+    .ae-panel .tables-title {
+      padding: 10px 16px 6px; font-size: 12px; opacity: .8;
+    }
+    .ae-panel .table-list {
+      flex: 1; overflow: auto; padding: 8px 16px 16px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .ae-panel .table-item {
+      padding: 10px 12px; border-radius: 10px;
+      background: var(--card-bg); border: 1px solid var(--border);
+      cursor: pointer; transition: background .15s;
+    }
+    .ae-panel .table-item:hover { background: #172033; }
+    .ae-panel .table-item.active {
+      border-color: var(--accent); background: rgba(56,189,248,.12);
+    }
+    .ae-panel .table-item .tb-name { font-weight: 700; }
+    .ae-panel .table-item .tb-dudoan { font-size: 12px; opacity: .9; margin-top: 2px; }
+
+    /* badge màu cho dự đoán */
+    .badge-B { color: #3b82f6; font-weight: 700; }
+    .badge-P { color: #f43f5e; font-weight: 700; }
+    .badge-T { color: #22c55e; font-weight: 700; }
+
+    /* ── Robot UI (draggable) ── */
+    .robot-ui {
+      position: absolute; left: 24px; top: 24px;
+      z-index: 150; cursor: grab; pointer-events: auto;
+      transition: opacity .2s ease;
+    }
+    .robot-ui:active { cursor: grabbing; }
+
+    .robot-box-sunwin {
+      position: relative; width: 200px; min-height: 140px;
+      user-select: none; background: transparent; touch-action: none;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      transform-origin: center center;
+      transition: transform .35s ease;
+    }
+
+    .robot-box-sunwin .robot-img {
+      width: var(--robot-size); height: var(--robot-size);
+      display: block; margin: 0 auto;
+    }
+
+    .rotate-btn {
+      position: absolute; left: -6px; top: -6px;
+      width: 28px; height: 28px; border-radius: 999px;
+      backdrop-filter: blur(4px);
+      background: rgba(34,34,34,.85); color: var(--accent);
+      border: 1px solid var(--accent);
+      display: grid; place-items: center;
+      font-size: 16px; line-height: 1;
+      box-shadow: 0 6px 16px #0006;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent; z-index: 5;
+      transition: transform .15s;
+    }
+    .rotate-btn:active { transform: scale(.96); }
+
+    .robot-box-sunwin .bubble {
+      position: absolute;
+      left: 138px; top: -8px;
+      min-width: var(--bubble-min); max-width: var(--bubble-max);
+      padding: 10px 16px;
+      background: rgba(255,255,255,0.95); color: #000;
+      border-radius: 12px; font-size: 0.95em; font-weight: 700;
+      border: 1.5px solid var(--accent);
+      box-shadow: 0 8px 24px #0005;
+      display: flex; flex-direction: column;
+      pointer-events: none; word-break: break-all;
+    }
+    .robot-box-sunwin .bubble strong { color: #000; }
+    .robot-box-sunwin .bubble .confidence { margin-top: 2px; color: #000; font-size: 1em; }
+    .robot-box-sunwin .bubble .extra-info { margin-top: 2px; font-size: 1em; color: #000; }
+
+    /* ── Fallback iframe ── */
+    .iframe-fallback {
+      position: absolute; inset: 0; display: none; z-index: 160;
+      align-items: center; justify-content: center;
+      background: rgba(15,23,42,.96); text-align: center; padding: 24px;
+    }
+    .iframe-fallback.show { display: flex; }
+    .iframe-fallback .box {
+      max-width: 560px; background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.12); border-radius: 14px;
+      padding: 18px 20px; box-shadow: 0 10px 40px rgba(0,0,0,.35);
+    }
+    .iframe-fallback h3 { margin: 0 0 8px; font-size: 18px; }
+    .iframe-fallback p { margin: 0 0 12px; opacity: .85; }
+    .iframe-fallback a {
+      display: inline-block; padding: 10px 14px; border-radius: 10px;
+      background: var(--accent); color: #fff; text-decoration: none;
+    }
+
+    noscript {
+      position: absolute; inset: 0; background: var(--bg); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px; text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Hamburger -->
+  <button type="button" class="hamburger-btn" id="menuBtn" aria-label="Menu">&#8801;</button>
+
+  <!-- Overlay -->
+  <div class="ae-overlay" id="aeOverlay"></div>
+
+  <!-- Side Panel -->
+  <aside class="ae-panel" id="aePanel">
+    <h2>Chọn bàn & Link game</h2>
+    <div class="link-section">
+      <label for="gameLinkInput">Link game khác (mở trong khung)</label>
+      <input type="url" id="gameLinkInput" placeholder="https://...">
+      <button type="button" id="openGameBtn">Mở link</button>
+    </div>
+    <div class="tables-title">Chọn bàn — bấm để xem dự đoán</div>
+    <div class="table-list" id="aeTableList">
+      <!-- Được render bởi JS -->
+    </div>
+  </aside>
+
+  <!-- Game Container -->
+  <div class="game-container" id="gameContainer">
+    <iframe id="gameFrame" class="game-frame"
+      src="https://choi.ae36.sbs/"
+      allowfullscreen
+      sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"></iframe>
+
+    <!-- Fallback nếu iframe bị chặn -->
+    <div class="iframe-fallback" id="iframeFallback">
+      <div class="box">
+        <h3>⚠️ Không thể tải game trong khung</h3>
+        <p>Trang game chặn nhúng (X-Frame-Options / CSP). Vui lòng mở trực tiếp:</p>
+        <a id="fallbackLink" href="https://choi.ae36.sbs/" target="_blank" rel="noopener">
+          Mở game trong tab mới
+        </a>
+      </div>
+    </div>
+
+    <!-- Robot UI (draggable) -->
+    <div class="robot-ui" id="robotDrag">
+      <div class="robot-box-sunwin" id="robotBox">
+
+        <dotlottie-player
+          class="robot-img"
+          src="https://lottie.host/55ab9688-9a63-4f35-93f8-b40bd7fb8058/4n00MLJLZk.lottie"
+          background="transparent" speed="1" loop autoplay>
+        </dotlottie-player>
+
+        <button class="rotate-btn" type="button" id="rotateBtn" aria-label="Xoay icon">&#10558;</button>
+
+        <div class="bubble" id="robotBubble">
+          <div><strong id="bubbleTable">Bàn 1</strong></div>
+          <div class="confidence" id="bubbleRoad">Road: —</div>
+          <div class="extra-info" id="bubbleWin">Tile win: — | Dự đoán: —</div>
+          <div class="extra-info" id="bubbleTrend">—</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <noscript>Trang này cần JavaScript. Vui lòng bật JavaScript.</noscript>
+
+  <script>
+  (() => {
+    'use strict';
+
+    /* ── Data bàn (từ file gốc) ── */
+    const TABLES = [
+      { id:'1',   dudoan:'B', road:'PPPBBPBTBBTBBPPBBPBBPPBTTPPBPBPPPPTBTBBBP', win:'78.3%', trend:'🌊 CẦU SÓNG MẠNH - ĐỔI CHIỀU' },
+      { id:'2',   dudoan:'B', road:'BBBPPBBBPBPBBPBPPPBBPBBBPPBPPB', win:'72.1%', trend:'➡️ CẦU LIÊN TIẾP BANKER' },
+      { id:'3',   dudoan:'P', road:'PPBPBPPBBPPBPBPBPPBB', win:'69.4%', trend:'🔄 CẦU ZIG-ZAG' },
+      { id:'4',   dudoan:'T', road:'BPBPBTPBPBTBPB', win:'55.0%', trend:'⚖️ TIE CÓ XÁC SUẤT CAO' },
+      { id:'5',   dudoan:'T', road:'PPBPBTBPBT', win:'53.2%', trend:'⚖️ TIE TIẾP THEO' },
+      { id:'6',   dudoan:'T', road:'BPBPBPTBP', win:'51.8%', trend:'⚖️ TIE KHẢ NĂNG' },
+      { id:'7',   dudoan:'B', road:'BBBPBBPBBPBB', win:'81.0%', trend:'🔥 CẦU BANKER MẠNH' },
+      { id:'8',   dudoan:'P', road:'PPBPPBPPPBP', win:'76.5%', trend:'💧 CẦU PLAYER MẠNH' },
+      { id:'9',   dudoan:'P', road:'PBPBPBPBPB', win:'68.3%', trend:'🔄 CẦU ZIG-ZAG ĐỀU' },
+      { id:'10',  dudoan:'P', road:'PPBBPPBBPPB', win:'74.2%', trend:'〰️ CẦU ĐÔI ĐẢO' },
+      { id:'C01', dudoan:'P', road:'PPBPBPPB', win:'65.0%', trend:'➡️ CẦU PLAYER' },
+      { id:'C02', dudoan:'T', road:'BPBPTBP', win:'52.0%', trend:'⚖️ TIE' },
+      { id:'C03', dudoan:'B', road:'BBBPBB', win:'79.0%', trend:'🔥 BANKER LIÊN' },
+      { id:'C04', dudoan:'P', road:'PBPPBP', win:'66.0%', trend:'💧 PLAYER' },
+      { id:'C05', dudoan:'P', road:'PPBPPB', win:'70.0%', trend:'💧 CẦU ĐÔI PLAYER' },
+      { id:'C06', dudoan:'T', road:'BPBPT', win:'51.5%', trend:'⚖️ TIE KHẢ NĂNG' },
+      { id:'C07', dudoan:'T', road:'BPTBP', win:'50.8%', trend:'⚖️ TIE' },
+      { id:'C08', dudoan:'B', road:'BPBBB', win:'77.0%', trend:'🔥 BANKER' },
+      { id:'C09', dudoan:'B', road:'BBBPP', win:'73.0%', trend:'🌊 CẦU BANKER' },
+      { id:'C10', dudoan:'B', road:'PPBBB', win:'71.0%', trend:'🌊 ĐỔI CHIỀU SANG BANKER' },
+      { id:'C11', dudoan:'B', road:'BBBPB', win:'80.0%', trend:'🔥 BANKER MẠNH' },
+      { id:'C12', dudoan:'P', road:'PPPBP', win:'75.0%', trend:'💧 CẦU PLAYER' },
+      { id:'C13', dudoan:'B', road:'BPBPB', win:'67.0%', trend:'🔄 ZIG-ZAG → BANKER' },
+      { id:'C14', dudoan:'P', road:'PBPBP', win:'67.0%', trend:'🔄 ZIG-ZAG → PLAYER' },
+      { id:'C15', dudoan:'B', road:'BBBBB', win:'85.0%', trend:'🔥 CẦU BANKER CỰC MẠNH' },
+      { id:'C16', dudoan:'P', road:'PPPPP', win:'84.0%', trend:'💧 CẦU PLAYER CỰC MẠNH' },
+    ];
+
+    let activeTable = TABLES[0];
+    let rotated = false;
+
+    /* ── Render bàn ── */
+    const tableList = document.getElementById('aeTableList');
+
+    function renderTables() {
+      tableList.innerHTML = '';
+      TABLES.forEach(t => {
+        const div = document.createElement('div');
+        div.className = 'table-item' + (t.id === activeTable.id ? ' active' : '');
+        div.dataset.table = t.id;
+        const color = t.dudoan === 'B' ? 'badge-B' : t.dudoan === 'P' ? 'badge-P' : 'badge-T';
+        div.innerHTML = `
+          <span class="tb-name">Bàn ${t.id}</span>
+          <span class="tb-dudoan">Dự đoán: <span class="${color}">${t.dudoan}</span></span>`;
+        div.addEventListener('click', () => {
+          activeTable = t;
+          updateBubble();
+          renderTables();
+          closePanel();
+        });
+        tableList.appendChild(div);
+      });
+    }
+
+    function updateBubble() {
+      const t = activeTable;
+      document.getElementById('bubbleTable').textContent = `Bàn ${t.id}`;
+      document.getElementById('bubbleRoad').textContent = `Road: ${t.road}`;
+      document.getElementById('bubbleWin').textContent = `Tile win: ${t.win} | Dự đoán: ${t.dudoan}`;
+      document.getElementById('bubbleTrend').textContent = t.trend;
+    }
+
+    /* ── Panel open/close ── */
+    const menuBtn = document.getElementById('menuBtn');
+    const aePanel = document.getElementById('aePanel');
+    const aeOverlay = document.getElementById('aeOverlay');
+
+    function openPanel() {
+      aePanel.classList.add('open');
+      aeOverlay.classList.add('show');
+    }
+    function closePanel() {
+      aePanel.classList.remove('open');
+      aeOverlay.classList.remove('show');
+    }
+    menuBtn.addEventListener('click', () => aePanel.classList.contains('open') ? closePanel() : openPanel());
+    aeOverlay.addEventListener('click', closePanel);
+
+    /* ── Mở link khác ── */
+    document.getElementById('openGameBtn').addEventListener('click', () => {
+      const url = document.getElementById('gameLinkInput').value.trim();
+      if (url) {
+        const frame = document.getElementById('gameFrame');
+        frame.src = url;
+        document.getElementById('fallbackLink').href = url;
+        closePanel();
+      }
+    });
+
+    /* ── Detect iframe blocked (X-Frame-Options) ── */
+    const gameFrame = document.getElementById('gameFrame');
+    const fallback = document.getElementById('iframeFallback');
+    let frameLoaded = false;
+
+    gameFrame.addEventListener('load', () => { frameLoaded = true; });
+    setTimeout(() => {
+      if (!frameLoaded) {
+        fallback.classList.add('show');
+      }
+    }, 8000);
+
+    /* ── Rotate robot ── */
+    document.getElementById('rotateBtn').addEventListener('click', e => {
+      e.stopPropagation();
+      rotated = !rotated;
+      const box = document.getElementById('robotBox');
+      box.style.transform = rotated ? 'scaleX(-1)' : '';
+    });
+
+    /* ── Drag robot ── */
+    const robotDrag = document.getElementById('robotDrag');
+    let dragging = false, ox = 0, oy = 0, sx = 0, sy = 0;
+
+    function clamp(val, min, max) { return Math.max(min, Math.min(max, val)); }
+
+    function startDrag(x, y) {
+      dragging = true;
+      ox = x; oy = y;
+      sx = parseInt(robotDrag.style.left) || 24;
+      sy = parseInt(robotDrag.style.top)  || 24;
+      robotDrag.style.cursor = 'grabbing';
+    }
+    function moveDrag(x, y) {
+      if (!dragging) return;
+      const dx = x - ox, dy = y - oy;
+      const maxX = window.innerWidth  - 220;
+      const maxY = window.innerHeight - 160;
+      robotDrag.style.left = clamp(sx + dx, 0, maxX) + 'px';
+      robotDrag.style.top  = clamp(sy + dy, 0, maxY) + 'px';
+    }
+    function endDrag() {
+      dragging = false;
+      robotDrag.style.cursor = 'grab';
+    }
+
+    robotDrag.addEventListener('mousedown', e => { if (e.button === 0) startDrag(e.clientX, e.clientY); });
+    document.addEventListener('mousemove', e => moveDrag(e.clientX, e.clientY));
+    document.addEventListener('mouseup', endDrag);
+
+    robotDrag.addEventListener('touchstart', e => {
+      const t = e.touches[0];
+      startDrag(t.clientX, t.clientY);
+    }, { passive: true });
+    document.addEventListener('touchmove', e => {
+      const t = e.touches[0];
+      moveDrag(t.clientX, t.clientY);
+    }, { passive: true });
+    document.addEventListener('touchend', endDrag);
+
+    /* ── Interval cập nhật dự đoán (giả lập) ── */
+    function randomPick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+    const ROADS = ['BPBPBPBPBP','BBBPPPBBB','PPPPBBBB','BPPTBPBT','PPBBPPBB'];
+    const TRENDS = ['🌊 CẦU SÓNG MẠNH','🔥 BANKER LIÊN TIẾP','💧 PLAYER LIÊN TIẾP','🔄 ZIG-ZAG','⚖️ CÂN BẰNG'];
+
+    setInterval(() => {
+      TABLES.forEach(t => {
+        if (Math.random() < 0.3) {
+          t.dudoan = randomPick(['B','P','T']);
+          t.road   = randomPick(ROADS) + randomPick(['BP','PB','BB','PP']);
+          t.win    = (50 + Math.random() * 40).toFixed(1) + '%';
+          t.trend  = randomPick(TRENDS);
+        }
+      });
+      updateBubble();
+      renderTables();
+    }, 3000);
+
+    /* ── Init ── */
+    renderTables();
+    updateBubble();
+  })();
+  </script>
+</body>
+</html>

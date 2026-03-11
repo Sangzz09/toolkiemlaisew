@@ -35,6 +35,7 @@ HTML_GAME_789       = _load('game_789.html')
 HTML_GAME_68GB      = _load('game_68gb.html')
 HTML_GAME_LUCK8     = _load('game_luck8.html')
 HTML_GAME_LC79      = _load('game_lc79.html')
+HTML_GAME_SEXY      = _load('game_sexy.html')
 
 # ── Map gcode → template (dùng trong route /game/<gcode>) ──────────────────
 GAME_TEMPLATES = {
@@ -46,4 +47,5 @@ GAME_TEMPLATES = {
     '68gb':  HTML_GAME_68GB,
     'luck8': HTML_GAME_LUCK8,
     'lc79':  HTML_GAME_LC79,
+    'sexy':  HTML_GAME_SEXY,
 }

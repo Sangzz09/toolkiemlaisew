@@ -1,7 +1,67 @@
 {
   "sun": [
-    "T�i"
+    "Tài",
+    "Xỉu",
+    "Tài",
+    "Xỉu"
   ],
-  "hit": [],
+  "hit": [
+    "Xỉu",
+    "Tài"
+  ],
   "sum": [],
-  "b52": 
+  "b52": [],
+  "luck8": [],
+  "sicbo": [
+    "Xỉu",
+    "Tài",
+    "Xỉu"
+  ],
+  "789": [],
+  "68gb": [],
+  "lc79": [],
+  "sexy": [],
+  "stats": {
+    "sun": {
+      "correct": 2,
+      "total": 2
+    },
+    "hit": {
+      "correct": 0,
+      "total": 0
+    },
+    "sum": {
+      "correct": 0,
+      "total": 0
+    },
+    "b52": {
+      "correct": 0,
+      "total": 0
+    },
+    "luck8": {
+      "correct": 0,
+      "total": 0
+    },
+    "sicbo": {
+      "correct": 1,
+      "total": 1
+    },
+    "789": {
+      "correct": 0,
+      "total": 0
+    },
+    "68gb": {
+      "correct": 0,
+      "total": 0
+    },
+    "lc79": {
+      "correct": 0,
+      "total": 0
+    },
+    "sexy": {
+      "correct": 0,
+      "total": 0
+    }
+  },
+  "last_update": 1773245817.0022187
+}

@@ -21,7 +21,8 @@ HIST = {
     "sicbo": deque(maxlen=10000),
     "789": deque(maxlen=10000),
     "68gb": deque(maxlen=10000),
-    "lc79": deque(maxlen=10000)
+    "lc79": deque(maxlen=10000),
+    "sexy": deque(maxlen=10000)
 }
 
 # Lưu trữ tổng xúc xắc cho Luck8 và Sicbo
@@ -38,7 +39,8 @@ PREDICTION_HISTORY = {
     "sicbo": deque(maxlen=10),
     "789": deque(maxlen=10),
     "68gb": deque(maxlen=10),
-    "lc79": deque(maxlen=10)
+    "lc79": deque(maxlen=10),
+    "sexy": deque(maxlen=10)
 }
 
 STATS = {
@@ -77,6 +79,10 @@ STATS = {
     "lc79": {
         "correct": 0,
         "total": 0
+    },
+    "sexy": {
+        "correct": 0,
+        "total": 0
     }
 }
 
@@ -90,7 +96,8 @@ CAU_HISTORY = {
     "sicbo": {"don": [], "kep": [], "dai": [], "xien": [], "lung": []},
     "789": {"don": [], "kep": [], "dai": [], "xien": [], "lung": []},
     "68gb": {"don": [], "kep": [], "dai": [], "xien": [], "lung": []},
-    "lc79": {"don": [], "kep": [], "dai": [], "xien": [], "lung": []}
+    "lc79": {"don": [], "kep": [], "dai": [], "xien": [], "lung": []},
+    "sexy": {"don": [], "kep": [], "dai": [], "xien": [], "lung": []}
 }
 
 # Hàm phân tích và lưu pattern cầu
@@ -151,7 +158,7 @@ def load_cau_history():
         if os.path.exists(CAU_HISTORY_FILE):
             with open(CAU_HISTORY_FILE) as f:
                 data = json.load(f)
-                for game in ["sun", "hit", "sum", "b52", "luck8", "sicbo", "789", "68gb", "lc79"]:
+                for game in ["sun", "hit", "sum", "b52", "luck8", "sicbo", "789", "68gb", "lc79", "sexy"]:
                     if game in data:
                         CAU_HISTORY[game] = data[game]
     except Exception as e:
@@ -170,6 +177,7 @@ def save_history():
             "789": list(HIST["789"]),
             "68gb": list(HIST["68gb"]),
             "lc79": list(HIST["lc79"]),
+            "sexy": list(HIST["sexy"]),
             "stats": STATS,
             "last_update": time.time()
         }
@@ -185,7 +193,7 @@ def load_history():
         if os.path.exists(HISTORY_FILE):
             with open(HISTORY_FILE) as f:
                 data = json.load(f)
-                for game in ["sun", "hit", "sum", "b52", "luck8", "sicbo", "789", "68gb", "lc79"]:
+                for game in ["sun", "hit", "sum", "b52", "luck8", "sicbo", "789", "68gb", "lc79", "sexy"]:
                     maxlen = 30 if game == "luck8" else 10000
                     HIST[game] = deque(data.get(game, []), maxlen=maxlen)
                     if game in data.get("stats", {}):
@@ -206,6 +214,7 @@ def save_prediction_history():
             "789": list(PREDICTION_HISTORY["789"]),
             "68gb": list(PREDICTION_HISTORY["68gb"]),
             "lc79": list(PREDICTION_HISTORY["lc79"]),
+            "sexy": list(PREDICTION_HISTORY["sexy"]),
             "last_update": time.time()
         }
         with open(PRED_HISTORY_FILE, "w") as f:
@@ -219,7 +228,7 @@ def load_prediction_history():
         if os.path.exists(PRED_HISTORY_FILE):
             with open(PRED_HISTORY_FILE) as f:
                 data = json.load(f)
-                for game in ["sun", "hit", "sum", "b52", "luck8", "sicbo", "789", "68gb", "lc79"]:
+                for game in ["sun", "hit", "sum", "b52", "luck8", "sicbo", "789", "68gb", "lc79", "sexy"]:
                     PREDICTION_HISTORY[game] = deque(data.get(game, []), maxlen=10)
     except Exception as e:
         print(f"Lỗi tải lịch sử dự đoán: {e}")
@@ -1323,6 +1332,20 @@ def predict(game):
             "pattern": pattern,
             "accuracy": f"{STATS['lc79']['correct']}/{STATS['lc79']['total']}" if STATS['lc79']['total'] > 0 else "0/0",
             "history": get_formatted_history("lc79")
+        }
+
+    if game == "sexy":
+        # Placeholder cho BCR Sexy nếu cần API backend
+        # Hiện tại game này chạy client-side random
+        return {
+            "phien": "---",
+            "ket_qua": "---",
+            "du_doan": random.choice(["B", "P", "T"]),
+            "do_tin_cay": 0.75,
+            "thuat_toan": "BCR Sexy AI",
+            "so_lan_dung": STATS['sexy']['correct'],
+            "so_lan_sai": STATS['sexy']['total'] - STATS['sexy']['correct'] if STATS['sexy']['total'] > 0 else 0,
+            "history": get_formatted_history("sexy")
         }
 
     if game == "sum":
