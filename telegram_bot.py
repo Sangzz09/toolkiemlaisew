@@ -110,6 +110,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "/ban_tg <id> - Chặn bot\n"
                     "/unban_tg <id> - Bỏ chặn bot\n"
                     "/xoa <username> - Xóa user\n"
+                    "/doanhthu - Xem doanh thu\n"
                     "/tong - Thống kê\n"
                     "/lichsu <game> - Xem lịch sử")
         else:
@@ -470,6 +471,7 @@ async def cmd_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/ban_tg <user_id> - Chặn user Telegram\n"
         "/unban_tg <user_id> - Bỏ chặn user Telegram\n"
         "/xoa <username> - Xóa tài khoản user\n"
+        "/doanhthu - Thống kê doanh thu mua key\n"
         "/tong - Thống kê tổng quan hệ thống\n"
         "/lichsu <game> - Lịch sử dự đoán từng game")
 
@@ -800,6 +802,26 @@ async def cmd_unban_tg(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         f"✅ Đã bỏ chặn User ID {user_id_to_unban} khỏi bot.")
+
+
+async def cmd_doanhthu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("⛔ Bạn không có quyền sử dụng lệnh này")
+        return
+
+    db = load_db()
+    transactions = db.get("transactions", [])
+
+    total_buy_key = sum(t.get("amount", 0) for t in transactions if t.get("type") == "buy_key" and t.get("status") == "completed")
+    buy_key_count = sum(1 for t in transactions if t.get("type") == "buy_key" and t.get("status") == "completed")
+
+    msg = (
+        f"💰 THỐNG KÊ DOANH THU MUA KEY\n\n"
+        f"🔑 Số lượt mua key: {buy_key_count}\n"
+        f"💵 Tổng doanh thu: {total_buy_key:,}đ"
+    )
+
+    await update.message.reply_text(msg)
 
 
 async def cmd_tong(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1316,6 +1338,7 @@ async def start_bot_async():
         bot_app.add_handler(CommandHandler("ban_tg", cmd_ban_tg))
         bot_app.add_handler(CommandHandler("unban_tg", cmd_unban_tg))
         bot_app.add_handler(CommandHandler("tong", cmd_tong))
+        bot_app.add_handler(CommandHandler("doanhthu", cmd_doanhthu))
         bot_app.add_handler(CommandHandler("xoa", cmd_xoa))
         bot_app.add_handler(CommandHandler("lichsu", cmd_lichsu))
         bot_app.add_handler(CommandHandler("xuatdata", cmd_xuatdata))

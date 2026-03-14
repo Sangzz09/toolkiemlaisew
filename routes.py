@@ -547,7 +547,8 @@ def api_predict(game):
     game = game.lower()
     if game not in HIST:
         return jsonify({"ok": False, "error": "invalid game"})
-    r = predict(game)
+    ban = request.args.get("ban", "md5")
+    r = predict(game, ban=ban)
     return jsonify({"ok": bool(r), "result": r})
 
 @bp.route("/api/prediction-stats/<game>")
@@ -699,6 +700,36 @@ def confirm_deposit():
     return jsonify({"ok": True})
 
 
+@bp.route("/api/cancel-deposit", methods=["POST"])
+def api_cancel_deposit():
+    if "username" not in session:
+        return jsonify({"ok": False, "error": "Vui lòng đăng nhập"})
+    
+    username = session["username"]
+    
+    try:
+        from sepay_webhook import _load
+        pending = _load()
+        
+        keys_to_delete = [k for k, v in pending.items() if v.get("username") == username]
+        for k in keys_to_delete:
+            del pending[k]
+            
+        if keys_to_delete:
+            try:
+                from sepay_webhook import _save
+                _save(pending)
+            except ImportError:
+                pass  # Bỏ qua nếu module không có hàm _save (lưu trên ram)
+            
+        from config import pending_deposits
+        tg_keys = [k for k, v in pending_deposits.items() if v.get("username") == username]
+        for k in tg_keys:
+            del pending_deposits[k]
+            
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
 
 @bp.route("/ping")
 def ping():

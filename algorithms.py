@@ -7,9 +7,10 @@ from collections import Counter
 import requests
 
 # ================== API GAMES ==================
-API_SUN = "https://apisuntcbm.onrender.com/sunlon"
+API_SUN = "https://crack-production-7f42.up.railway.app/api/sunwin"
 LINK_SUN = "https://web.sunwin.id/?affId=Sunwin"
 API_HIT = "https://binhtool-hitpredict.onrender.com/api/taixiu"
+API_HIT_HU = "https://toolgameai.site/tt.php?id=hellokietne21&key=bomaylakiet&token=ditmemay&game=hithu"
 API_SUM = ""  # SumClub đã bỏ
 LOGO_SUNWIN = "https://i.postimg.cc/q7ybsvSb/IMG-1615.jpg"
 LOGO_HITCLUB = "https://i.postimg.cc/66YHLSbG/IMG-1616.jpg"
@@ -24,9 +25,9 @@ LINK_SICBO = "https://web.sunwin.id/?affId=Sunwin"
 LOGO_SICBO = "https://i.postimg.cc/fR36RRwD/IMG-2036.jpg"
 API_789 = "https://api789hix.hacksieucap.pro/taixiuv3"
 LOGO_789 = "https://i.postimg.cc/43HWjS37/789.webp"
-API_68GB = "http://68.183.228.40:3090/api/md5"
+API_68GB = "https://crack-production-7f42.up.railway.app/api/68gb"
 LOGO_68GB = "https://i.postimg.cc/zDQVG2DG/OIP.webp"
-API_LC79 = "https://apilc79md5sieucappro.onrender.com/predict"
+API_LC79 = "https://crack-production-7f42.up.railway.app/api/lc79"
 LOGO_LC79 = "https://i.postimg.cc/vTSzPJnm/lc79.webp"
 
 # Thuật toán dự đoán vị xúc xắc cho Sicbo

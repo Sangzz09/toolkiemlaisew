@@ -349,7 +349,7 @@ let waitingText = document.getElementById("waiting-text");
 let confidenceBox = document.getElementById("confidence-box");
 let confidenceText = document.getElementById("confidence");
 if(!sessionInfo) return;
-let phien = data.Phien || data.phien || data.Session || data.session || data.round || null;
+let phien = data.phien_hien_tai || data.Phien || data.phien || data.Session || data.session || data.round || null;
 let rawPred = data.du_doan || data.du_doan_tiep_theo || data.prediction || data.Ket_qua || data.ket_qua || data.KetQua || null;
 let pred = normalizePred(rawPred);
 let conf = data.do_tin_cay || data.confidence || 0.72;
@@ -478,7 +478,8 @@ refresh();
 <a href="/menu" class="back-btn">← Menu</a>
 </div>
 
-<div class="iframe-container" style="display:block"><iframe src="https://web.sunwin.id/?affId=Sunwin"></iframe></div>
+<!-- Thay đổi link iframe tại src="" -->
+<div class="iframe-container" style="display:block"><iframe src="https://web.sunwin.id/?affId=Sunwin" id="gameFrame"></iframe></div>
 
 <div class="draggable-box" id="dragBox" style="touch-action: none; display:flex">
   <div class="action-btns">
