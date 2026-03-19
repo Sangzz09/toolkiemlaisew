@@ -1192,8 +1192,13 @@ async def cmd_lichsu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         current_session = api_data.get("phien", "---")
         current_result = normalize(api_data.get("ket_qua"))
     elif game == "hit":
-        current_session = api_data.get("phien", "---")
-        current_result = normalize(api_data.get("ket_qua"))
+        if "data" in api_data:
+            phien_ht = api_data["data"].get("phien_hien_tai")
+            current_session = str(int(phien_ht) - 1) if phien_ht else "---"
+            current_result = "⏳"
+        else:
+            current_session = api_data.get("phien", "---")
+            current_result = normalize(api_data.get("ket_qua"))
     elif game == "sum":
         current_session = api_data.get("Phien") or api_data.get("phien_hien_tai", "---")
         current_result = normalize(api_data.get("Ket_qua"))
@@ -1201,9 +1206,8 @@ async def cmd_lichsu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         current_session = api_data.get("Phien", "---")
         current_result = normalize(api_data.get("Ket_qua"))
     elif game == "luck8":
-        phien_data = api_data.get("phienHienTai", {})
-        current_session = phien_data.get("phien", "---")
-        current_result = normalize(phien_data.get("ketqua"))
+        current_session = api_data.get("phien", "---")
+        current_result = normalize(api_data.get("ketQua"))
     elif game == "789":
         current_session = api_data.get("phien", "---")
         current_result = normalize(api_data.get("ket_qua"))

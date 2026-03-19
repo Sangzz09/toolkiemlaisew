@@ -420,9 +420,10 @@ def game(gcode):
 
     # FIX: Tự động cập nhật link iframe Sunwin/Sicbo mới nhất
     if gcode in ['sun', 'sicbo']:
-        template = template.replace("web.sunwin.lt", "web.sunwin.id")
-        template = template.replace("web.sunwin.gg", "web.sunwin.id")
-        template = template.replace("web.sunwin.pw", "web.sunwin.id")
+        template = template.replace("web.sunwin.lt", "web.sunwin.ag")
+        template = template.replace("web.sunwin.gg", "web.sunwin.ag")
+        template = template.replace("web.sunwin.pw", "web.sunwin.ag")
+        template = template.replace("web.sunwin.id", "web.sunwin.ag")
 
     return render_template_string(template)
 
