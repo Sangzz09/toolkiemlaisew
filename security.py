@@ -66,7 +66,9 @@ def set_session_fingerprint():
 def verify_session_fingerprint() -> bool:
     stored = session.get("_fp")
     if not stored:
-        return False
+        # Chưa có fingerprint (user đăng nhập từ trước) → tự set luôn
+        set_session_fingerprint()
+        return True
     fp  = _get_client_fingerprint()
     exp = hmac.new(SECRET.encode(), fp.encode(), hashlib.sha256).hexdigest()[:16]
     return hmac.compare_digest(stored, exp)
@@ -203,8 +205,17 @@ def api_protected(f):
     return decorated
 
 def csrf_required(f):
-    """Backward compat - giờ dùng api_protected thay thế"""
-    return api_protected(f)
+    """Chỉ check session login + CSRF token (không check fingerprint)"""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if "username" not in session:
+            return jsonify({"ok": False, "error": "Vui lòng đăng nhập", "code": 401}), 401
+        if check_rate_limit():
+            return jsonify(RATE_BLOCKED), 429
+        if not verify_csrf_token():
+            return jsonify(BLOCKED), 403
+        return f(*args, **kwargs)
+    return decorated
 
 # ══════════════════════════════════════════════════════════════
 # ĐĂNG KÝ VÀO FLASK APP

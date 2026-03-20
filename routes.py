@@ -552,7 +552,6 @@ def enter_key(gcode):
 
 @bp.route("/api/predict/<game>")
 @api_protected
-@encrypted_response
 def api_predict(game):
     # --- BẢO MẬT API: KIỂM TRA KEY HẾT HẠN ---
     username = session["username"]
@@ -578,8 +577,7 @@ def api_predict(game):
         return jsonify({"ok": False, "error": "invalid game"})
     ban = request.args.get("ban", "md5")
     r = predict(game, ban=ban)
-    # Trả dict → @encrypted_response tự mã hóa
-    return {"ok": bool(r), "result": r}
+    return jsonify({"ok": bool(r), "result": r})
 
 @bp.route("/api/prediction-stats/<game>")
 @csrf_required
