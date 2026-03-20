@@ -25,7 +25,6 @@ REQUIRED_PACKAGES = [
 for package, module in REQUIRED_PACKAGES:
     try:
         __import__(module)
-        # Kiểm tra kỹ hơn cho telegram bot (cần bản v20+)
         if module == "telegram":
             from telegram.ext import Application
     except ImportError:
@@ -39,11 +38,20 @@ from flask_cors import CORS
 from config import SECRET_KEY, PORT
 from predict import load_history, load_prediction_history, load_cau_history
 from routes import register_routes
+from domain_guard import register_domain_guard   # ← BẢO VỆ API
 
 # ================== KHỞI TẠO FLASK ==================
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
-CORS(app)
+CORS(app, origins=[
+    "https://toolkiemlaisew.site",
+    "https://www.toolkiemlaisew.site",
+    "http://localhost",
+    "http://127.0.0.1",
+])
+
+# ← ĐĂNG KÝ BẢO VỆ DOMAIN TRƯỚC KHI REGISTER ROUTES
+register_domain_guard(app, protect_prefix="/api/")
 
 # Đăng ký tất cả routes
 register_routes(app)
@@ -69,6 +77,7 @@ def run_bot_with_watchdog():
 if __name__ == "__main__":
     try:
         print("[START] Đang khởi động SHOP MINHSANG...", flush=True)
+        print("[GUARD] Bảo vệ API - Chỉ cho phép: toolkiemlaisew.site", flush=True)
 
         # Tải lịch sử
         load_history()

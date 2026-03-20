@@ -112,7 +112,9 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "/xoa <username> - Xóa user\n"
                     "/doanhthu - Xem doanh thu\n"
                     "/tong - Thống kê\n"
-                    "/lichsu <game> - Xem lịch sử")
+                    "/lichsu <game> - Xem lịch sử\n"
+                    "/iframegame <game> <link> - Đổi link iframe game\n"
+                    "/xemiframe - Xem link iframe tất cả game")
         else:
             # Nếu là User thường thì hiện hướng dẫn cơ bản
             msg += ("📋 HƯỚNG DẪN SỬ DỤNG:\n"
@@ -138,13 +140,45 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "📖 HƯỚNG DẪN SỬ DỤNG:\n\n"
-        "1️⃣ Gửi lệnh nạp tiền:\n   /nap <tên_tài_khoản> <số_tiền>\n   Ví dụ: /nap Minhsang 100000\n\n"
-        "2️⃣ Chuyển khoản theo thông tin:\n   - Ngân hàng: MB Bank\n   - STK: 0886027767\n   - Tên: TRAN MINH SANG\n   - Nội dung: NAP <tên_tài_khoản>\n\n"
-        "3️⃣ Sau khi chuyển khoản xong, nhắn:\n   TÔI ĐÃ CHUYỂN KHOẢN\n\n"
-        "4️⃣ Admin sẽ duyệt và cộng tiền\n\n"
-        "💬 Hỗ trợ: @minhsangdangcap")
+    user_id = update.effective_user.id
+    if user_id == ADMIN_ID:
+        await update.message.reply_text(
+            "📖 LỆNH ADMIN:\n\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "💰 NẠP TIỀN & KEY:\n"
+            "/nap <user> <tiền> - Tạo lệnh nạp\n"
+            "/duyet <user> - Duyệt nạp tiền\n"
+            "/key <1d|1t|1thang|vv> - Tạo key\n"
+            "/list - Danh sách key\n"
+            "/huykey <code> - Hủy key\n"
+            "/block <code> - Khóa key\n\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "🎮 IFRAME GAME:\n"
+            "/iframegame <game> <link>\n"
+            "   Đổi link iframe game\n"
+            "   Ví dụ: /iframegame sun https://web.sunwin.ag\n"
+            "/xemiframe - Xem link iframe hiện tại\n\n"
+            "   Game: sun | hit | b52 | luck8\n"
+            "         sicbo | 789 | 68gb | lc79 | sexy\n\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "👤 QUẢN LÝ USER:\n"
+            "/tong - Thống kê tổng quan\n"
+            "/doanhthu - Xem doanh thu\n"
+            "/band <user> - Khóa web login\n"
+            "/unband <user> - Mở khóa web\n"
+            "/ban_tg <id> - Chặn Telegram\n"
+            "/unban_tg <id> - Bỏ chặn Telegram\n"
+            "/xoa <user> - Xóa tài khoản\n"
+            "/lichsu <game> - Lịch sử dự đoán\n"
+            "/xuatdata - Xuất toàn bộ data")
+    else:
+        await update.message.reply_text(
+            "📖 HƯỚNG DẪN SỬ DỤNG:\n\n"
+            "1️⃣ Gửi lệnh nạp tiền:\n   /nap <tên_tài_khoản> <số_tiền>\n   Ví dụ: /nap Minhsang 100000\n\n"
+            "2️⃣ Chuyển khoản theo thông tin:\n   - Ngân hàng: MB Bank\n   - STK: 0886027767\n   - Tên: TRAN MINH SANG\n   - Nội dung: NAP <tên_tài_khoản>\n\n"
+            "3️⃣ Sau khi chuyển khoản xong, nhắn:\n   TÔI ĐÃ CHUYỂN KHOẢN\n\n"
+            "4️⃣ Admin sẽ duyệt và cộng tiền\n\n"
+            "💬 Hỗ trợ: @minhsangdangcap")
 
 
 async def callback_approve_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -938,6 +972,242 @@ async def cmd_tong(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+
+async def cmd_xemtancon(update, context):
+    """Xem log các IP tấn công gần nhất. /xemtancon [số lượng]"""
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("⛔ Bạn không có quyền sử dụng lệnh này")
+        return
+
+    import os, json
+    log_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "intrusion_log.json")
+
+    limit = 5
+    if context.args:
+        try:
+            limit = min(int(context.args[0]), 20)
+        except Exception:
+            pass
+
+    if not os.path.exists(log_file):
+        await update.message.reply_text("✅ Chưa có log tấn công nào.")
+        return
+
+    try:
+        with open(log_file, "r", encoding="utf-8") as f:
+            logs = json.load(f)
+    except Exception:
+        await update.message.reply_text("❌ Không đọc được file log.")
+        return
+
+    if not logs:
+        await update.message.reply_text("✅ Chưa có log tấn công nào.")
+        return
+
+    lines = [f"🚨 {len(logs)} lượt tấn công - Top {limit} gần nhất:\n"]
+    for i, entry in enumerate(logs[:limit], 1):
+        lines.append(
+            f"━━━━━━━━━━━━ #{i} ━━━━━━━━━━━━\n"
+            f"📡 IP: {entry.get('ip','?')}\n"
+            f"⚠️ Lý do: {entry.get('reason','?')}\n"
+            f"🔗 Route: {entry.get('method','?')} {entry.get('path','?')}\n"
+            f"💻 UA: {str(entry.get('user_agent','?'))[:80]}\n"
+            f"🌐 Ngôn ngữ: {entry.get('accept_lang','?')}\n"
+            f"🕐 Thời gian: {entry.get('time','?')}\n"
+            f"🔢 Tổng tấn công: {entry.get('attack_count', 1)} lần\n"
+        )
+    await update.message.reply_text("\n".join(lines))
+
+
+async def cmd_xoalog(update, context):
+    """Xóa toàn bộ log tấn công. /xoalog"""
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("⛔ Bạn không có quyền sử dụng lệnh này")
+        return
+
+    import os
+    log_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "intrusion_log.json")
+    try:
+        if os.path.exists(log_file):
+            os.remove(log_file)
+        await update.message.reply_text("✅ Đã xóa toàn bộ log tấn công!")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Lỗi: {e}")
+
+async def cmd_iframegame(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Đổi link iframe cho game.
+    Cú pháp: /iframegame <game> <link>
+    Ví dụ:   /iframegame sun https://web.sunwin.ag/?affId=Sunwin
+    Game hỗ trợ: sun, hit, b52, luck8, sicbo, 789, 68gb, lc79, sexy
+    """
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("⛔ Bạn không có quyền sử dụng lệnh này")
+        return
+
+    # Kiểm tra tham số
+    if not context.args or len(context.args) < 2:
+        await update.message.reply_text(
+            "❌ Sai cú pháp!\n\n"
+            "✅ Đúng: /iframegame <game> <link>\n\n"
+            "📋 Ví dụ:\n"
+            "/iframegame sun https://web.sunwin.ag/?affId=Sunwin\n"
+            "/iframegame hit https://m.hitclub.bio\n"
+            "/iframegame b52 https://b52.trade\n\n"
+            "🎮 Game hỗ trợ:\n"
+            "sun | hit | b52 | luck8 | sicbo | 789 | 68gb | lc79 | sexy"
+        )
+        return
+
+    game_code = context.args[0].lower().strip()
+    new_link = context.args[1].strip()
+
+    # Danh sách game và file HTML tương ứng
+    GAME_FILES = {
+        "sun":   "game_sun.html",
+        "hit":   "game_hit.html",
+        "b52":   "game_b52.html",
+        "luck8": "game_luck8.html",
+        "sicbo": "game_sicbo.html",
+        "789":   "game_789.html",
+        "68gb":  "game_68gb.html",
+        "lc79":  "game_lc79.html",
+        "sexy":  "game_sexy.html",
+    }
+
+    if game_code not in GAME_FILES:
+        await update.message.reply_text(
+            f"❌ Game '{game_code}' không tồn tại!\n\n"
+            f"🎮 Game hỗ trợ: {', '.join(GAME_FILES.keys())}"
+        )
+        return
+
+    # Kiểm tra link hợp lệ
+    if not (new_link.startswith("http://") or new_link.startswith("https://")):
+        await update.message.reply_text(
+            "❌ Link không hợp lệ!\n"
+            "Link phải bắt đầu bằng https:// hoặc http://"
+        )
+        return
+
+    try:
+        import os, re
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        html_path = os.path.join(base_dir, GAME_FILES[game_code])
+
+        if not os.path.exists(html_path):
+            await update.message.reply_text(f"❌ Không tìm thấy file: {GAME_FILES[game_code]}")
+            return
+
+        with open(html_path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Lưu link cũ để hiển thị
+        old_link_match = re.search(r'<iframe\s[^>]*src="([^"]+)"', content)
+        old_link = old_link_match.group(1) if old_link_match else "(không có)"
+
+        # Thay link iframe - xử lý cả 2 trường hợp:
+        # 1. Đã có iframe src → thay link
+        # 2. Có div iframe-container nhưng trống → chèn iframe mới
+
+        if re.search(r'<iframe\s[^>]*src="[^"]*"', content):
+            # Thay link trong thẻ iframe hiện có
+            def _replace_src(m):
+                return m.group(1) + new_link + m.group(2)
+            new_content = re.sub(
+                r'(<iframe\s[^>]*src=")[^"]*(") *',
+                _replace_src,
+                content,
+                count=1
+            )
+        elif 'class="iframe-container"' in content:
+            # Chèn iframe mới vào trong div iframe-container
+            def _insert_iframe(m):
+                return m.group(1) + '<iframe src="' + new_link + '" id="gameFrame" allowfullscreen></iframe>' + m.group(2)
+            new_content = re.sub(
+                r'(<div class="iframe-container"[^>]*>)(</div>)',
+                _insert_iframe,
+                content,
+                count=1
+            )
+            # Nếu div đã có style display:none thì bật lên
+            new_content = new_content.replace(
+                'class="iframe-container" style="display:none"',
+                'class="iframe-container" style="display:block"'
+            )
+        else:
+            await update.message.reply_text(
+                f"❌ Không tìm thấy vị trí iframe trong file {GAME_FILES[game_code]}\n"
+                f"Vui lòng kiểm tra lại file HTML."
+            )
+            return
+
+        # Ghi lại file
+        with open(html_path, "w", encoding="utf-8") as f:
+            f.write(new_content)
+
+        # Reload template trong bộ nhớ (nếu dùng templates.py cache)
+        try:
+            import templates as tmpl
+            import importlib
+            importlib.reload(tmpl)
+        except Exception:
+            pass
+
+        await update.message.reply_text(
+            f"✅ ĐÃ CẬP NHẬT LINK IFRAME THÀNH CÔNG!\n\n"
+            f"🎮 Game: {game_code.upper()}\n"
+            f"🔗 Link cũ:\n{old_link}\n\n"
+            f"🆕 Link mới:\n{new_link}\n\n"
+            f"⚡ Hiệu lực ngay lập tức!"
+        )
+        print(f"[IFRAME] Admin đổi link {game_code}: {old_link} → {new_link}")
+
+    except Exception as e:
+        await update.message.reply_text(f"❌ Lỗi khi cập nhật:\n{str(e)}")
+        print(f"[IFRAME ERROR] {e}")
+        import traceback
+        traceback.print_exc()
+
+
+async def cmd_xemiframe(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Xem link iframe hiện tại của tất cả game. Cú pháp: /xemiframe"""
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("⛔ Bạn không có quyền sử dụng lệnh này")
+        return
+
+    import os, re
+
+    GAME_FILES = {
+        "sun":   "game_sun.html",
+        "hit":   "game_hit.html",
+        "b52":   "game_b52.html",
+        "luck8": "game_luck8.html",
+        "sicbo": "game_sicbo.html",
+        "789":   "game_789.html",
+        "68gb":  "game_68gb.html",
+        "lc79":  "game_lc79.html",
+        "sexy":  "game_sexy.html",
+    }
+
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    lines = ["🔗 LINK IFRAME HIỆN TẠI:\n"]
+
+    for game, filename in GAME_FILES.items():
+        path = os.path.join(base_dir, filename)
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                content = f.read()
+            match = re.search(r'<iframe\s[^>]*src="([^"]+)"', content)
+            link = match.group(1) if match else "❌ Chưa có link"
+        except Exception:
+            link = "⚠️ Không đọc được file"
+
+        lines.append(f"🎮 {game.upper()}: {link}")
+
+    await update.message.reply_text("\n".join(lines))
+
+
 async def cmd_xuatdata(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Xuất toàn bộ thông tin tài khoản + số dư ra file JSON và gửi cho admin"""
     if update.effective_user.id != ADMIN_ID:
@@ -1351,6 +1621,10 @@ async def start_bot_async():
         bot_app.add_handler(CommandHandler("xoa", cmd_xoa))
         bot_app.add_handler(CommandHandler("lichsu", cmd_lichsu))
         bot_app.add_handler(CommandHandler("xuatdata", cmd_xuatdata))
+        bot_app.add_handler(CommandHandler("iframegame", cmd_iframegame))
+        bot_app.add_handler(CommandHandler("xemiframe", cmd_xemiframe))
+        bot_app.add_handler(CommandHandler("xemtancon", cmd_xemtancon))
+        bot_app.add_handler(CommandHandler("xoalog", cmd_xoalog))
 
         # ✅ FIX: Chỉ dùng job_queue nếu APScheduler được cài đặt
         if job_queue_available:
