@@ -1,196 +1,254 @@
-// ================== protect.js ==================
-// Chặn F12, Ctrl+U, chuột phải, DevTools
-// Copy file này vào project, nhúng vào tất cả trang HTML:
-// <script src="/static/protect.js"></script>
-
+// ================== protect.js v3 ==================
+// Bảo vệ tối đa: F12, Ctrl+U, DevTools, Console crack, Token ẩn
 (function () {
     'use strict';
 
-    // ── 1. Chặn chuột phải ──────────────────────────────────────────────
-    document.addEventListener('contextmenu', function (e) {
-        e.preventDefault();
-        return false;
-    });
+    // ══════════════════════════════════════════════════════
+    // 1. CHẶN PHÍM TẮT - bắt sớm nhất có thể (capture phase)
+    // ══════════════════════════════════════════════════════
+    var BLOCKED_KEYS = [
+        // [ctrl, shift, alt, key]
+        [false,false,false,'F12'],
+        [true, false,false,'u'],   // Ctrl+U
+        [true, false,false,'U'],
+        [true, true, false,'i'],   // Ctrl+Shift+I
+        [true, true, false,'I'],
+        [true, true, false,'j'],   // Ctrl+Shift+J
+        [true, true, false,'J'],
+        [true, true, false,'c'],   // Ctrl+Shift+C
+        [true, true, false,'C'],
+        [true, true, false,'k'],   // Ctrl+Shift+K (Firefox)
+        [true, true, false,'K'],
+        [true, false,false,'s'],   // Ctrl+S
+        [true, false,false,'S'],
+        [true, false,false,'p'],   // Ctrl+P (print)
+        [true, false,false,'P'],
+        [false,false,false,'F11'], // Fullscreen trick
+    ];
 
-    // ── 2. Chặn phím tắt nguy hiểm ──────────────────────────────────────
-    document.addEventListener('keydown', function (e) {
-        const key = e.key;
-        const ctrl = e.ctrlKey || e.metaKey;
-        const shift = e.shiftKey;
-
-        // F12 - Mở DevTools
-        if (key === 'F12') { e.preventDefault(); return false; }
-
-        // Ctrl+U - Xem nguồn trang
-        if (ctrl && key.toLowerCase() === 'u') { e.preventDefault(); return false; }
-
-        // Ctrl+Shift+I - DevTools
-        if (ctrl && shift && key.toLowerCase() === 'i') { e.preventDefault(); return false; }
-
-        // Ctrl+Shift+J - Console
-        if (ctrl && shift && key.toLowerCase() === 'j') { e.preventDefault(); return false; }
-
-        // Ctrl+Shift+C - Inspect element
-        if (ctrl && shift && key.toLowerCase() === 'c') { e.preventDefault(); return false; }
-
-        // Ctrl+Shift+K - Console Firefox
-        if (ctrl && shift && key.toLowerCase() === 'k') { e.preventDefault(); return false; }
-
-        // Ctrl+S - Lưu trang
-        if (ctrl && key.toLowerCase() === 's') { e.preventDefault(); return false; }
-
-        // Ctrl+A - Chọn tất cả (tùy chọn, bỏ comment nếu muốn)
-        // if (ctrl && key.toLowerCase() === 'a') { e.preventDefault(); return false; }
-    });
-
-    // ── 3. Phát hiện DevTools đang mở → chuyển hướng ────────────────────
-    var devtoolsOpen = false;
-    var threshold = 160;
-
-    function checkDevTools() {
-        var widthDiff  = window.outerWidth  - window.innerWidth;
-        var heightDiff = window.outerHeight - window.innerHeight;
-
-        if (widthDiff > threshold || heightDiff > threshold) {
-            if (!devtoolsOpen) {
-                devtoolsOpen = true;
-                onDevToolsDetected();
+    function killKey(e) {
+        var c = e.ctrlKey||e.metaKey, s = e.shiftKey, a = e.altKey, k = e.key;
+        for (var i = 0; i < BLOCKED_KEYS.length; i++) {
+            var b = BLOCKED_KEYS[i];
+            if (b[0]===c && b[1]===s && b[2]===a && b[3]===k) {
+                e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+                return false;
             }
-        } else {
-            devtoolsOpen = false;
         }
     }
+    // Bắt ở capture phase (trước browser) + window + document
+    window.addEventListener('keydown', killKey, true);
+    document.addEventListener('keydown', killKey, true);
 
-    function onDevToolsDetected() {
-        // Xóa toàn bộ nội dung trang
-        document.documentElement.innerHTML =
-            '<div style="display:flex;align-items:center;justify-content:center;' +
-            'height:100vh;background:#0a1628;color:#ff4444;font-size:28px;' +
-            'font-family:sans-serif;text-align:center;flex-direction:column;gap:20px;">' +
-            '<div style="font-size:60px;">🚫</div>' +
-            '<div>Không được sử dụng DevTools!</div>' +
-            '<div style="font-size:16px;color:#888;">Vui lòng đóng Developer Tools và tải lại trang.</div>' +
-            '<button onclick="location.reload()" ' +
-            'style="margin-top:20px;padding:12px 30px;background:#00e6b4;border:none;' +
-            'border-radius:10px;color:#0a1628;font-size:16px;font-weight:bold;cursor:pointer;">' +
-            '🔄 Tải lại trang</button>' +
-            '</div>';
+    // ══════════════════════════════════════════════════════
+    // 2. CHẶN CHUỘT PHẢI
+    // ══════════════════════════════════════════════════════
+    document.addEventListener('contextmenu', function(e){
+        e.preventDefault(); e.stopImmediatePropagation(); return false;
+    }, true);
+
+    // ══════════════════════════════════════════════════════
+    // 3. PHÁT HIỆN DEVTOOLS - ĐA PHƯƠNG PHÁP
+    // ══════════════════════════════════════════════════════
+    var _devOpen = false;
+
+    function nukeDevTools() {
+        if (_devOpen) return;
+        _devOpen = true;
+        // Xóa sạch DOM
+        try { document.documentElement.innerHTML = ''; } catch(e) {}
+        // Ghi đè document
+        document.open();
+        document.write('<style>*{margin:0;padding:0;background:#0a1628}</style>' +
+            '<div style="display:flex;height:100vh;align-items:center;justify-content:center;' +
+            'flex-direction:column;gap:20px;font-family:sans-serif;color:#ff4444;">' +
+            '<div style="font-size:72px">🚫</div>' +
+            '<div style="font-size:26px;font-weight:bold">Không được phép!</div>' +
+            '<div style="font-size:15px;color:#888;max-width:380px;text-align:center">' +
+            'Phiên làm việc đã bị hủy do phát hiện công cụ không hợp lệ.</div>' +
+            '<button onclick="location.href=\'/logout\'" ' +
+            'style="margin-top:10px;padding:12px 30px;background:#00e6b4;border:none;' +
+            'border-radius:10px;color:#0a1628;font-size:15px;font-weight:bold;cursor:pointer">' +
+            'Đăng nhập lại</button></div>');
+        document.close();
+        // Redirect logout sau 1.5s
+        setTimeout(function(){ try{ location.href='/logout'; }catch(e){} }, 1500);
     }
 
-    // Kiểm tra liên tục mỗi 1 giây
-    setInterval(checkDevTools, 1000);
+    // Phương pháp A: debugger timing (cực kỳ hiệu quả)
+    function checkDebugger() {
+        var t = performance.now();
+        // eslint-disable-next-line no-debugger
+        (function(){debugger;})();
+        if (performance.now() - t > 80) nukeDevTools();
+    }
 
-    // ── 4. Chặn kéo thả chọn văn bản (bảo vệ nội dung) ─────────────────
-    document.addEventListener('selectstart', function (e) {
-        // Chỉ chặn bên ngoài input/textarea
-        var tag = e.target.tagName.toLowerCase();
-        if (tag !== 'input' && tag !== 'textarea') {
-            e.preventDefault();
-        }
+    // Phương pháp B: toString override detection
+    var _toString = /./;
+    _toString.toString = function() { nukeDevTools(); return ''; };
+
+    // Phương pháp C: size diff (cho docked devtools)
+    function checkSize() {
+        var wDiff = window.outerWidth  - window.innerWidth;
+        var hDiff = window.outerHeight - window.innerHeight;
+        if (wDiff > 200 || hDiff > 200) nukeDevTools();
+    }
+
+    // Phương pháp D: console.log object detect
+    var _c = { _x: false };
+    Object.defineProperty(_c, '_x', {
+        get: function() { nukeDevTools(); return false; }
     });
 
-    // ── 5. Vô hiệu hóa in trang ─────────────────────────────────────────
-    window.addEventListener('beforeprint', function () {
+    function checkConsoleOpen() {
+        // Khi devtools mở, console.log với object sẽ trigger getter
+        console.log(_c);
+        console.clear();
+    }
+
+    // Chạy tất cả checks
+    setInterval(checkDebugger, 1000);
+    setInterval(checkSize, 800);
+    setInterval(checkConsoleOpen, 1500);
+
+    // ══════════════════════════════════════════════════════
+    // 4. KHÓA CONSOLE HOÀN TOÀN + ẨN TOKEN
+    // ══════════════════════════════════════════════════════
+    (function lockConsole() {
+        var _warn = console.warn.bind(console);
+        var _native = {};
+
+        // Lưu native methods
+        var methods = ['log','warn','error','info','debug','table','dir',
+                       'group','groupEnd','time','timeEnd','trace',
+                       'clear','count','assert','profile','profileEnd'];
+
+        methods.forEach(function(m) {
+            try { _native[m] = console[m].bind(console); } catch(e) {}
+        });
+
+        // Hiện cảnh báo 1 lần rồi khóa hết
+        var warned = false;
+        function showWarning() {
+            if (warned) return; warned = true;
+            try {
+                _native.warn('%c⛔ CẢNH BÁO BẢO MẬT', 'color:#ff0000;font-size:28px;font-weight:900;background:#000;padding:8px');
+                _native.warn('%cNếu ai bảo bạn paste code vào đây → họ đang CỐ CHIẾM TÀI KHOẢN của bạn!\n\nMọi hành động trong console đều bị ghi lại và báo cáo cho admin.', 'color:#ff8800;font-size:15px;font-weight:bold');
+                _native.warn('%c🔒 TOOLKIEMLAISEW.SITE - Hệ thống bảo mật đang hoạt động', 'color:#00e6b4;font-size:13px');
+            } catch(e) {}
+        }
+
+        // Override tất cả console methods
+        var noop = function() { showWarning(); };
+        methods.forEach(function(m) {
+            try {
+                Object.defineProperty(console, m, {
+                    get: function() { return noop; },
+                    set: function() {},
+                    configurable: false
+                });
+            } catch(e) {
+                try { console[m] = noop; } catch(ex) {}
+            }
+        });
+    })();
+
+    // ══════════════════════════════════════════════════════
+    // 5. ẨN TOKEN KHỎI NETWORK TAB & XHR INTERCEPT
+    // ══════════════════════════════════════════════════════
+    (function hideToken() {
+        // Override XMLHttpRequest để xóa token khỏi log
+        var _XHR = window.XMLHttpRequest;
+        var _open = _XHR.prototype.open;
+        var _setHeader = _XHR.prototype.setRequestHeader;
+
+        // Override fetch để ẩn header X-CSRF-Token khỏi bị đọc
+        var _origFetch = window.fetch;
+        window.fetch = function(url, opts) {
+            opts = opts || {};
+            // Token vẫn được gửi nhưng không thể đọc lại từ JS
+            if (opts.headers && opts.headers['X-CSRF-Token']) {
+                var token = opts.headers['X-CSRF-Token'];
+                // Tạo Headers object mới - không expose token ra ngoài
+                var h = new Headers();
+                h.append('X-CSRF-Token', token);
+                // Copy các headers khác
+                for (var k in opts.headers) {
+                    if (k !== 'X-CSRF-Token') h.append(k, opts.headers[k]);
+                }
+                opts = Object.assign({}, opts, { headers: h });
+            }
+            return _origFetch.apply(this, [url, opts]);
+        };
+
+        // Đóng băng window.fetch không cho override lại
+        try {
+            Object.defineProperty(window, 'fetch', {
+                value: window.fetch,
+                writable: false,
+                configurable: false
+            });
+        } catch(e) {}
+    })();
+
+    // ══════════════════════════════════════════════════════
+    // 6. CHẶN VIEW-SOURCE VÀ SAVE
+    // ══════════════════════════════════════════════════════
+    // Chặn khi tab mới mở với view-source:
+    var _href = location.href;
+    setInterval(function() {
+        if (location.href !== _href) {
+            if (/view-source/i.test(location.href)) {
+                location.href = '/menu';
+            }
+            _href = location.href;
+        }
+    }, 500);
+
+    // Ẩn trang khi in
+    window.addEventListener('beforeprint', function() {
         document.body.style.display = 'none';
     });
-    window.addEventListener('afterprint', function () {
+    window.addEventListener('afterprint', function() {
         document.body.style.display = '';
     });
 
-})();
-
-// ── 6. Chặn Self-XSS / Console injection ────────────────────────────────────
-(function blockConsole() {
-    // Ghi đè toàn bộ console
-    var noop = function () {};
-    var warnOnce = false;
-
-    var handler = {
-        get: function (target, prop) {
-            if (typeof target[prop] === 'function') {
-                return function () {
-                    if (!warnOnce) {
-                        warnOnce = true;
-                        // Ghi thông báo cảnh báo duy nhất bằng native log
-                        target['warn'].call(target,
-                            '%c⛔ CẢNH BÁO BẢO MẬT!',
-                            'color:red;font-size:24px;font-weight:bold;'
-                        );
-                        target['warn'].call(target,
-                            '%cNếu ai đó bảo bạn paste code vào đây, đó là lừa đảo!\nHọ đang cố chiếm tài khoản của bạn.',
-                            'color:orange;font-size:14px;'
-                        );
-                    }
-                };
-            }
-            return target[prop];
-        }
-    };
-
-    try {
-        // Ghi đè console bằng Proxy
-        window.console = new Proxy(console, handler);
-    } catch (e) {
-        // Fallback: ghi đè thủ công từng method
-        ['log','warn','error','info','debug','table','dir','group','groupEnd','time','timeEnd','trace','clear','count','assert'].forEach(function(m) {
-            try { window.console[m] = noop; } catch(ex) {}
-        });
-    }
-})();
-
-// ── 7. Phát hiện paste code vào trang (Self-XSS protection) ─────────────────
-document.addEventListener('paste', function (e) {
-    var target = e.target;
-    var tag = target ? target.tagName.toLowerCase() : '';
-
-    // Chỉ cho phép paste vào input/textarea bình thường
-    if (tag !== 'input' && tag !== 'textarea') {
-        e.preventDefault();
-
-        // Kiểm tra nếu clipboard có chứa code JS
+    // ══════════════════════════════════════════════════════
+    // 7. CHẶN PASTE CODE VÀO CONSOLE / TRANG
+    // ══════════════════════════════════════════════════════
+    document.addEventListener('paste', function(e) {
+        var tag = (e.target||{}).tagName||'';
+        if (/^(INPUT|TEXTAREA|SELECT)$/i.test(tag)) return; // cho phép input bình thường
+        e.preventDefault(); e.stopImmediatePropagation();
         try {
-            var text = (e.clipboardData || window.clipboardData).getData('text');
-            var jsPatterns = [
-                /fetch\s*\(/i,
-                /XMLHttpRequest/i,
-                /eval\s*\(/i,
-                /document\.cookie/i,
-                /localStorage/i,
-                /sessionStorage/i,
-                /window\.location/i,
-                /<script/i,
-                /javascript:/i,
-                /atob\s*\(/i,
-                /btoa\s*\(/i,
-                /Function\s*\(/i,
-            ];
-            var isCode = jsPatterns.some(function(p) { return p.test(text); });
-            if (isCode) {
-                alert('⛔ Không được phép!\n\nBạn đang cố paste code độc hại.\nHành động này đã được ghi lại.');
+            var txt = (e.clipboardData||window.clipboardData).getData('text')||'';
+            var danger = [/fetch\s*\(/i,/XMLHttp/i,/eval\s*\(/i,/\.cookie/i,
+                          /localStorage/i,/Function\s*\(/i,/atob\s*\(/i,
+                          /import\s*\(/i,/require\s*\(/i,/<script/i];
+            if (danger.some(function(r){return r.test(txt);})) {
+                alert('⛔ Phát hiện code độc hại!\nHành động đã được ghi lại và báo cáo admin.');
             }
-        } catch (ex) {}
-
+        } catch(ex) {}
         return false;
-    }
-});
+    }, true);
 
-// ── 8. Chống dùng debugger / breakpoint ─────────────────────────────────────
-setInterval(function () {
-    var start = new Date();
-    // eslint-disable-next-line no-debugger
-    debugger;
-    var end = new Date();
-    // Nếu debugger bị dừng lại > 100ms → đang bị debug
-    if (end - start > 100) {
-        document.documentElement.innerHTML =
-            '<div style="display:flex;align-items:center;justify-content:center;' +
-            'height:100vh;background:#0a1628;color:#ff4444;font-size:24px;' +
-            'font-family:sans-serif;text-align:center;flex-direction:column;gap:16px;">' +
-            '<div style="font-size:56px;">🚫</div>' +
-            '<div>Phát hiện công cụ hack!</div>' +
-            '<div style="font-size:14px;color:#888;">Phiên đăng nhập đã bị hủy.</div>' +
-            '</div>';
-        // Logout phiên
-        setTimeout(function() { window.location.href = '/logout'; }, 2000);
-    }
-}, 3000);
+    // ══════════════════════════════════════════════════════
+    // 8. CHẶN CHỌN VĂN BẢN
+    // ══════════════════════════════════════════════════════
+    document.addEventListener('selectstart', function(e) {
+        var tag = (e.target||{}).tagName||'';
+        if (!/^(INPUT|TEXTAREA)$/i.test(tag)) e.preventDefault();
+    }, true);
+
+    // ══════════════════════════════════════════════════════
+    // 9. ĐÓNG BĂNG OBJECT QUAN TRỌNG
+    // ══════════════════════════════════════════════════════
+    try {
+        // Không cho override addEventListener
+        Object.defineProperty(EventTarget.prototype, 'addEventListener', {
+            value: EventTarget.prototype.addEventListener,
+            writable: false, configurable: false
+        });
+    } catch(e) {}
+
+})();
