@@ -38,7 +38,9 @@ from flask_cors import CORS
 from config import SECRET_KEY, PORT
 from predict import load_history, load_prediction_history, load_cau_history
 from routes import register_routes
-from domain_guard import register_domain_guard   # ← BẢO VỆ API
+from domain_guard import register_domain_guard
+from intrusion_detector import register_intrusion_detector
+from security import register_security  # ← Bảo mật tổng hợp cấp cao
 
 # ================== KHỞI TẠO FLASK ==================
 app = Flask(__name__)
@@ -51,7 +53,9 @@ CORS(app, origins=[
 ])
 
 # ← ĐĂNG KÝ BẢO VỆ DOMAIN TRƯỚC KHI REGISTER ROUTES
+register_intrusion_detector(app)
 register_domain_guard(app, protect_prefix="/api/")
+# register_security được gọi trong register_routes (routes.py)
 
 # Đăng ký tất cả routes
 register_routes(app)
@@ -78,6 +82,7 @@ if __name__ == "__main__":
     try:
         print("[START] Đang khởi động SHOP MINHSANG...", flush=True)
         print("[GUARD] Bảo vệ API - Chỉ cho phép: toolkiemlaisew.site", flush=True)
+        print("[SECURITY] Intrusion Detector: bật theo dõi tấn công", flush=True)
 
         # Tải lịch sử
         load_history()

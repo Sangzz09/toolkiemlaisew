@@ -14,7 +14,7 @@ from predict import predict, get_formatted_history, load_history, save_history, 
 from algorithms import safe_json, normalize, API_SUN, API_HIT, API_B52A, API_B52B, API_LUCK8, API_SICBO, API_789, API_68GB, API_LC79
 import time, json, os, requests
 import time, json, os, requests, re
-from csrf_token import csrf_required, register_csrf_route
+from security import api_protected, csrf_required, register_security, set_session_fingerprint
 from nanoid import generate
 
 bp = Blueprint('main', __name__)
@@ -86,6 +86,7 @@ def login():
         if username in db["users"]:
             if db["users"][username]["password"] == hash_password(password):
                 session["username"] = username
+                set_session_fingerprint()
                 return redirect(url_for("main.menu"))
             else:
                 error = "Mật khẩu không đúng"
@@ -378,6 +379,7 @@ def sepay_webhook():
 
 
 @bp.route("/api/balance")
+@api_protected
 def api_balance():
     """Dùng cho JS polling kiểm tra tiền đã vào chưa"""
     if "username" not in session:
@@ -603,6 +605,7 @@ def api_prediction_stats(game):
     })
 
 @bp.route("/api/save-luck8-history", methods=["POST"])
+@api_protected
 def save_luck8_history_api():
     try:
         data = request.get_json()
@@ -730,6 +733,7 @@ def confirm_deposit():
 
 
 @bp.route("/api/cancel-deposit", methods=["POST"])
+@api_protected
 def api_cancel_deposit():
     if "username" not in session:
         return jsonify({"ok": False, "error": "Vui lòng đăng nhập"})
@@ -768,4 +772,4 @@ def ping():
 
 def register_routes(app):
     app.register_blueprint(bp)
-    register_csrf_route(app)
+    register_security(app)
