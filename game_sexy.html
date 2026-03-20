@@ -271,6 +271,25 @@
   <noscript>Trang này cần JavaScript. Vui lòng bật JavaScript.</noscript>
 
   <script>
+// ── CSRF Token Helper ──────────────────────────────────────────────────────
+let _csrfToken = null;
+async function getCsrfToken() {
+    if (_csrfToken) return _csrfToken;
+    try {
+        const r = await fetch("/api/csrf-token");
+        const j = await r.json();
+        if (j.ok) { _csrfToken = j.token; return _csrfToken; }
+    } catch(e) {}
+    return null;
+}
+async function apiFetch(url) {
+    const token = await getCsrfToken();
+    return fetch(url, {
+        headers: token ? { "X-CSRF-Token": token } : {}
+    });
+}
+// ──────────────────────────────────────────────────────────────────────────
+
   (() => {
     'use strict';
 

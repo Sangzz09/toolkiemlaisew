@@ -205,6 +205,25 @@ gap:4px;
 }
 </style>
 <script>
+// ── CSRF Token Helper ──────────────────────────────────────────────────────
+let _csrfToken = null;
+async function getCsrfToken() {
+    if (_csrfToken) return _csrfToken;
+    try {
+        const r = await fetch("/api/csrf-token");
+        const j = await r.json();
+        if (j.ok) { _csrfToken = j.token; return _csrfToken; }
+    } catch(e) {}
+    return null;
+}
+async function apiFetch(url) {
+    const token = await getCsrfToken();
+    return fetch(url, {
+        headers: token ? { "X-CSRF-Token": token } : {}
+    });
+}
+// ──────────────────────────────────────────────────────────────────────────
+
 let gameCode='hit';
 let lastSession=null;
 let lastPredictedSession=null;
@@ -213,7 +232,7 @@ let isPredicting=false;
 
 async function refresh(){
 try{
-let r=await fetch("/api/predict/hit");
+let r=await apiFetch("/api/predict/hit");
 let j=await r.json();
 let data = (j && j.result) ? j.result : (j && j.data) ? j.data : j;
 if(data && typeof data==='object'){

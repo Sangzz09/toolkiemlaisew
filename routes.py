@@ -14,6 +14,7 @@ from predict import predict, get_formatted_history, load_history, save_history, 
 from algorithms import safe_json, normalize, API_SUN, API_HIT, API_B52A, API_B52B, API_LUCK8, API_SICBO, API_789, API_68GB, API_LC79
 import time, json, os, requests
 import time, json, os, requests, re
+from csrf_token import csrf_required, register_csrf_route
 from nanoid import generate
 
 bp = Blueprint('main', __name__)
@@ -547,6 +548,7 @@ def enter_key(gcode):
 
 
 @bp.route("/api/predict/<game>")
+@csrf_required
 def api_predict(game):
     # --- BẢO MẬT API: KIỂM TRA KEY HẾT HẠN ---
     if "username" not in session:
@@ -578,6 +580,7 @@ def api_predict(game):
     return jsonify({"ok": bool(r), "result": r})
 
 @bp.route("/api/prediction-stats/<game>")
+@csrf_required
 def api_prediction_stats(game):
     game = game.lower()
     if game not in PREDICTION_HISTORY:
@@ -765,3 +768,4 @@ def ping():
 
 def register_routes(app):
     app.register_blueprint(bp)
+    register_csrf_route(app)
