@@ -1392,35 +1392,59 @@ async def cmd_iframegame(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # 1. Đã có iframe src → thay link
         # 2. Có div iframe-container nhưng trống → chèn iframe mới
 
-        if re.search(r'<iframe\s[^>]*src="[^"]*"', content):
-            # Thay link trong thẻ iframe hiện có
+        # Tách link thành 3 phần để obfuscate trong JS
+        proto    = 'https://' if new_link.startswith('https') else 'http://'
+        link_raw = new_link.replace('https://','').replace('http://','')
+        mid      = len(link_raw) // 3
+        p1, p2, p3 = link_raw[:mid], link_raw[mid:mid*2], link_raw[mid*2:]
+        new_parts_js = repr([p1, p2, p3])
+
+        # Ưu tiên 1: Thay mảng _p=[...] trong JS (obfuscated link - dùng khi đã obfuscate)
+        if re.search(r"var _p=\[.*?\]", content):
+            new_content = re.sub(
+                r"var _p=\[.*?\]",
+                f"var _p={new_parts_js}",
+                content,
+                count=1
+            )
+        # Ưu tiên 2: Thay src="about:blank" thành src thật
+        elif re.search(r'<iframe[^>]*src="about:blank"', content):
+            new_content = re.sub(
+                r'(<iframe[^>]*src=")about:blank(")',
+                r'\g<1>' + new_link + r'\g<2>',
+                content,
+                count=1
+            )
+        # Ưu tiên 3: Thay src iframe thật
+        elif re.search(r'<iframe[^>]*src="https?://', content):
             def _replace_src(m):
                 return m.group(1) + new_link + m.group(2)
             new_content = re.sub(
-                r'(<iframe\s[^>]*src=")[^"]*(") *',
+                r'(<iframe[^>]*src=")[^"]*(") *',
                 _replace_src,
                 content,
                 count=1
             )
+        # Ưu tiên 4: Chèn mới vào iframe-container
         elif 'class="iframe-container"' in content:
-            # Chèn iframe mới vào trong div iframe-container
-            def _insert_iframe(m):
-                return m.group(1) + '<iframe src="' + new_link + '" id="gameFrame" allowfullscreen></iframe>' + m.group(2)
-            new_content = re.sub(
-                r'(<div class="iframe-container"[^>]*>)(</div>)',
-                _insert_iframe,
-                content,
-                count=1
-            )
-            # Nếu div đã có style display:none thì bật lên
+            # Thêm JS inject link mới + mở container
+            inject_js = f'''
+<script>
+(function(){{
+  var _p={new_parts_js};
+  var _u='{proto}'+_p.join('');
+  var el=document.getElementById('gameFrame')||document.querySelector('iframe');
+  if(el){{ el.src=_u; }}
+}})();
+</script>'''
+            new_content = content.replace('</body>', inject_js + '\n</body>', 1)
             new_content = new_content.replace(
                 'class="iframe-container" style="display:none"',
                 'class="iframe-container" style="display:block"'
             )
         else:
             await update.message.reply_text(
-                f"❌ Không tìm thấy vị trí iframe trong file {GAME_FILES[game_code]}\n"
-                f"Vui lòng kiểm tra lại file HTML."
+                f"❌ Không tìm thấy vị trí iframe trong file {GAME_FILES[game_code]}"
             )
             return
 
