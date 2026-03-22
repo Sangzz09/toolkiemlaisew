@@ -1277,14 +1277,13 @@ def predict(game, ban="md5"):
                 save_history()
                 analyze_and_save_cau_patterns(list(h), "68gb")
 
-        phien_tiep_theo = raw.get("phien_du_doan")
+        # API mới đã có sẵn phien_du_doan, dùng đúng như API - KHÔNG cộng 1
+        phien_tiep_theo = raw.get("phien_du_doan") or raw.get("phien_tiep_theo")
         if phien_tiep_theo:
             phien_tiep_theo = str(phien_tiep_theo)
         else:
-            try:
-                phien_tiep_theo = str(int(phien) + 1) if phien and str(phien).isdigit() else "---"
-            except:
-                phien_tiep_theo = "---"
+            # Nếu API không có phien_du_doan thì dùng phien hiện tại luôn (không cộng 1)
+            phien_tiep_theo = phien
                 
         api_du = normalize(raw.get("du_doan") or raw.get("Du_doan") or raw.get("predict"))
         
@@ -1369,14 +1368,13 @@ def predict(game, ban="md5"):
                 analyze_and_save_cau_patterns(list(h), "lc79")
 
         # Dự đoán phiên tiếp theo
-        phien_tiep_theo = raw.get("phien_du_doan")
+        # API mới đã có sẵn phien_du_doan, dùng đúng như API - KHÔNG cộng 1
+        phien_tiep_theo = raw.get("phien_du_doan") or raw.get("phien_tiep_theo")
         if phien_tiep_theo:
             phien_tiep_theo = str(phien_tiep_theo)
         else:
-            try:
-                phien_tiep_theo = str(int(phien) + 1) if phien and str(phien).isdigit() else "---"
-            except:
-                phien_tiep_theo = "---"
+            # Nếu API không có phien_du_doan thì dùng phien hiện tại luôn (không cộng 1)
+            phien_tiep_theo = phien
             
         api_du = normalize(raw.get("du_doan"))
         
