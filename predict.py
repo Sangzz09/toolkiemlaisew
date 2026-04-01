@@ -1146,8 +1146,26 @@ def predict(game, ban="md5"):
         tong = 0
         
         if ban == "hu" or game == "hit-hu":
-            raw_response = safe_json(API_HIT_HU)
-            if not raw_response: return None
+            raw_response = safe_json(API_HIT_HU, timeout=8)
+            if not raw_response:
+                fake_phien = "---"
+                if PREDICTION_HISTORY["hit-hu"]:
+                    last_rec = PREDICTION_HISTORY["hit-hu"][-1]
+                    if last_rec.get("session") and str(last_rec.get("session")).isdigit():
+                        fake_phien = str(int(last_rec["session"]))
+                return {
+                    "game": "HitClub Hũ",
+                    "phien": fake_phien,
+                    "phien_du_doan": "---",
+                    "ket_qua": "Mất kết nối",
+                    "xuc_xac": [0, 0, 0],
+                    "tong_xuc_xac": 0,
+                    "du_doan": "ĐANG TẢI...",
+                    "do_tin_cay": 50,
+                    "ban": "hu",
+                    "accuracy": f"{STATS['hit-hu']['correct']}/{STATS['hit-hu']['total']}" if STATS['hit-hu']['total'] > 0 else "0/0",
+                    "history": get_formatted_history("hit-hu")
+                }
             raw = raw_response.get("data", raw_response) if isinstance(raw_response, dict) else raw_response
             
             phien_hien_tai = str(raw.get("phien_hien_tai", "")).replace("#", "").strip()
@@ -1300,23 +1318,26 @@ def predict(game, ban="md5"):
         }
 
     if game in ("68gb", "68gb-do"):
-        # API mới trả về {"data": [...]} - lọc lấy bàn xanh "key": "banxanh"
-        raw_all = safe_json(API_68GB)
         raw = None
         
-        target_key = "banxanh"
-        if ban == "do" or game == "68gb-do": target_key = "bando"
+        is_ban_do = (ban == "do" or game == "68gb-do")
 
-        if raw_all:
-            data_list = raw_all.get("data", [])
-            if isinstance(data_list, list):
-                for item in data_list:
-                    if item.get("key") == target_key or item.get("game","").upper() == target_key.upper().replace("BAN", "BÀN "):
-                        raw = item
-                        break
-            # Fallback: nếu API trả thẳng object (không có data wrapper)
-            if not raw and raw_all.get("key") == target_key:
-                raw = raw_all
+        if not is_ban_do:
+            raw = safe_json(API_68GB_XANH, timeout=8)
+        else:
+            raw_all = safe_json(API_68GB, timeout=8)
+            target_key = "bando"
+
+            if raw_all:
+                data_list = raw_all.get("data", [])
+                if isinstance(data_list, list):
+                    for item in data_list:
+                        if item.get("key") == target_key or item.get("game","").upper() == target_key.upper().replace("BAN", "BÀN "):
+                            raw = item
+                            break
+                if not raw and raw_all.get("key") == target_key:
+                    raw = raw_all
+                    
         if not raw:
             # Fallback: Dự đoán từ lịch sử nội bộ nếu API lỗi
             du, conf = analyze(list(h), game)
@@ -1341,9 +1362,7 @@ def predict(game, ban="md5"):
                 "history": get_formatted_history(game)
             }
             
-        # API 68GB: "phien" = phiên đang dự đoán (tiếp theo), "du_doan" = kết quả dự đoán
-        # Phiên hiện tại = phien - 1
-        phien_du_doan = str(raw.get("phien") or "---")
+        phien_du_doan = str(raw.get("phien_du_doan") or raw.get("phien") or "---")
         
         if "phien_hien_tai" in raw:
             phien_hien_tai = str(raw.get("phien_hien_tai"))

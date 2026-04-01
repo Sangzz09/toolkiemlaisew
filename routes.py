@@ -656,16 +656,21 @@ def api_predict(game):
     game = game.lower()
     
     # Lấy ban param từ URL hoặc tự suy từ gcode
+    ban = request.args.get("ban", "md5")
     if game == "68gb-do":
-        ban = request.args.get("ban", "do")
+        ban = "do"
     elif game == "hit-hu":
-        ban = request.args.get("ban", "hu")
-    else:
-        ban = request.args.get("ban", "md5")
+        ban = "hu"
+        
+    internal_game = game
+    if game == "hit" and ban == "hu":
+        internal_game = "hit-hu"
+    elif game == "68gb" and ban == "do":
+        internal_game = "68gb-do"
     
-    if game not in HIST:
+    if internal_game not in HIST:
         return jsonify({"ok": False, "error": "invalid game"})
-    r = predict(game, ban=ban)
+    r = predict(internal_game, ban=ban)
     return jsonify({"ok": bool(r), "result": r})
 
 
