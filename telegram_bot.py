@@ -121,7 +121,8 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"  /xemtancon — Log tấn công\n\n"
                 f"🎮 GAME\n"
                 f"  /iframegame <game> <link>\n"
-                f"  /xemiframe — Xem link game"
+                f"  /xemiframe — Xem link game\n"
+                f"  Game: sun|hit|hit-hu|b52|sicbo|789|68gb|68gb-do|lc79|sexy"
             )
             keyboard = [[
                 InlineKeyboardButton("🌐 Truy cập Tool", url="https://toolkiemlaisew.site"),
@@ -201,10 +202,10 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "🎮 IFRAME GAME:\n"
             "/iframegame <game> <link>\n"
             "   Đổi link iframe game\n"
-            "   Ví dụ: /iframegame sun https://web.sunwin.ag\n"
+            "   Ví dụ: /iframegame sun https://web.sunwin.ca/?affId=Sunwin\n"
             "/xemiframe - Xem link iframe hiện tại\n\n"
-            "   Game: sun | hit | b52 | luck8\n"
-            "         sicbo | 789 | 68gb | lc79 | sexy\n\n"
+            "   Game: sun | hit | hit-hu | b52 | luck8\n"
+            "         sicbo | 789 | 68gb | 68gb-do | lc79 | sexy\n\n"
             "━━━━━━━━━━━━━━━━━━━━\n"
             "👤 QUẢN LÝ USER:\n"
             "/tong - Thống kê tổng quan\n"
@@ -1346,15 +1347,17 @@ async def cmd_iframegame(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Danh sách game và file HTML tương ứng
     GAME_FILES = {
-        "sun":   "game_sun.html",
-        "hit":   "game_hit.html",
-        "b52":   "game_b52.html",
-        "luck8": "game_luck8.html",
-        "sicbo": "game_sicbo.html",
-        "789":   "game_789.html",
-        "68gb":  "game_68gb.html",
-        "lc79":  "game_lc79.html",
-        "sexy":  "game_sexy.html",
+        "sun":      "game_sun.html",
+        "hit":      "game_hit.html",
+        "hit-hu":   "game_hit.html",   # HitClub bàn hũ dùng chung template
+        "b52":      "game_b52.html",
+        "luck8":    "game_luck8.html",
+        "sicbo":    "game_sicbo.html",
+        "789":      "game_789.html",
+        "68gb":     "game_68gb.html",
+        "68gb-do":  "game_68gb.html",  # 68GB bàn đỏ dùng chung template
+        "lc79":     "game_lc79.html",
+        "sexy":     "game_sexy.html",
     }
 
     if game_code not in GAME_FILES:
@@ -1485,15 +1488,17 @@ async def cmd_xemiframe(update: Update, context: ContextTypes.DEFAULT_TYPE):
     import os, re
 
     GAME_FILES = {
-        "sun":   "game_sun.html",
-        "hit":   "game_hit.html",
-        "b52":   "game_b52.html",
-        "luck8": "game_luck8.html",
-        "sicbo": "game_sicbo.html",
-        "789":   "game_789.html",
-        "68gb":  "game_68gb.html",
-        "lc79":  "game_lc79.html",
-        "sexy":  "game_sexy.html",
+        "sun":      "game_sun.html",
+        "hit":      "game_hit.html",
+        "hit-hu":   "game_hit.html",
+        "b52":      "game_b52.html",
+        "luck8":    "game_luck8.html",
+        "sicbo":    "game_sicbo.html",
+        "789":      "game_789.html",
+        "68gb":     "game_68gb.html",
+        "68gb-do":  "game_68gb.html",
+        "lc79":     "game_lc79.html",
+        "sexy":     "game_sexy.html",
     }
 
     base_dir = os.path.dirname(os.path.abspath(__file__))

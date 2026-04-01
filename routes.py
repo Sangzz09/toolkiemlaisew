@@ -424,6 +424,13 @@ def game(gcode):
     
     gcode = gcode.lower()
 
+    # Map gcode thực sang game template gốc (cho các game mới tách từ game cũ)
+    GCODE_ALIAS = {
+        "68gb-do": "68gb",   # 68GB bàn đỏ dùng cùng template với bàn xanh
+        "hit-hu":  "hit",    # HitClub bàn hũ dùng cùng template với bàn MD5
+    }
+    template_gcode = GCODE_ALIAS.get(gcode, gcode)
+
     active_key = db["active"].get(username)
 
     # Kiểm tra nếu có key active và còn hạn
@@ -437,16 +444,17 @@ def game(gcode):
         save_db(db)
         return redirect(url_for("main.enter_key", gcode=gcode))
 
-    template = GAME_TEMPLATES.get(gcode)
+    template = GAME_TEMPLATES.get(template_gcode)
     if not template:
         return redirect(url_for("main.menu"))
 
     # FIX: Tự động cập nhật link iframe Sunwin/Sicbo mới nhất
     if gcode in ['sun', 'sicbo']:
-        template = template.replace("web.sunwin.lt", "web.sunwin.ag")
-        template = template.replace("web.sunwin.gg", "web.sunwin.ag")
-        template = template.replace("web.sunwin.pw", "web.sunwin.ag")
-        template = template.replace("web.sunwin.id", "web.sunwin.ag")
+        template = template.replace("web.sunwin.lt", "web.sunwin.ca")
+        template = template.replace("web.sunwin.gg", "web.sunwin.ca")
+        template = template.replace("web.sunwin.pw", "web.sunwin.ca")
+        template = template.replace("web.sunwin.id", "web.sunwin.ca")
+        template = template.replace("web.sunwin.ag", "web.sunwin.ca")
 
     return render_template_string(template)
 
@@ -468,12 +476,14 @@ def enter_key(gcode):
     
     game_name_map = {
         "sun": "SunWin",
-        "hit": "HitClub",
+        "hit": "HitClub - Bàn MD5",
+        "hit-hu": "HitClub - Bàn Hũ",
         "b52": "B52",
         "luck8": "Luck8",
         "sicbo": "Sicbo SunWin",
         "789": "789Club",
-        "68gb": "68 Game Bài",
+        "68gb": "68 Game Bài - Bàn Xanh",
+        "68gb-do": "68 Game Bài - Bàn Đỏ",
         "lc79": "LC79",
         "sexy": "BCR Sexy"
     }
@@ -481,11 +491,13 @@ def enter_key(gcode):
     game_logo_map = {
         "sun": "https://i.postimg.cc/q7ybsvSb/IMG-1615.jpg",
         "hit": "https://i.postimg.cc/66YHLSbG/IMG-1616.jpg",
+        "hit-hu": "https://i.postimg.cc/66YHLSbG/IMG-1616.jpg",
         "b52": "https://i.postimg.cc/q7swtZCB/IMG-1617.jpg",
         "luck8": "https://i.postimg.cc/tg4Pgzzt/IMG-1702.jpg",
         "sicbo": "https://i.postimg.cc/5tLC4p8q/IMG-2048.jpg",
         "789": "https://i.postimg.cc/43HWjS37/789.webp",
         "68gb": "https://i.postimg.cc/zDQVG2DG/OIP.webp",
+        "68gb-do": "https://i.postimg.cc/zDQVG2DG/OIP.webp",
         "lc79": "https://i.postimg.cc/vTSzPJnm/lc79.webp",
         "sexy": "https://i.postimg.cc/j28zwGJf/sexy-baccarat.jpg"
     }
@@ -599,10 +611,25 @@ def api_predict(game):
         return jsonify({"ok": False, "error": "Key đã hết hạn"})
 
     game = game.lower()
-    if game not in HIST:
+    
+    # Map alias game mới sang game gốc trong HIST
+    GAME_ALIAS = {
+        "68gb-do": "68gb",
+        "hit-hu":  "hit",
+    }
+    # Lấy ban param từ URL hoặc tự suy từ gcode
+    if game == "68gb-do":
+        ban = "do"
+    elif game == "hit-hu":
+        ban = "hu"
+    else:
+        ban = request.args.get("ban", "md5")
+    
+    game_for_hist = GAME_ALIAS.get(game, game)
+    if game_for_hist not in HIST:
         return jsonify({"ok": False, "error": "invalid game"})
-    ban = request.args.get("ban", "md5")
-    r = predict(game, ban=ban)
+    ban = request.args.get("ban", ban)
+    r = predict(game_for_hist, ban=ban)
     return jsonify({"ok": bool(r), "result": r})
 
 
@@ -786,15 +813,15 @@ def confirm_deposit():
 
 
 @bp.route("/api/cancel-deposit", methods=["POST"])
-@api_protected
 def api_cancel_deposit():
+    """Hủy giao dịch nạp tiền - chỉ xóa đơn chờ, KHÔNG ban IP"""
     if "username" not in session:
         return jsonify({"ok": False, "error": "Vui lòng đăng nhập"})
     
     username = session["username"]
     
     try:
-        from sepay_webhook import _load
+        from sepay_webhook import _load, _save
         pending = _load()
         
         keys_to_delete = [k for k, v in pending.items() if v.get("username") == username]
@@ -802,11 +829,7 @@ def api_cancel_deposit():
             del pending[k]
             
         if keys_to_delete:
-            try:
-                from sepay_webhook import _save
-                _save(pending)
-            except ImportError:
-                pass  # Bỏ qua nếu module không có hàm _save (lưu trên ram)
+            _save(pending)
             
         from config import pending_deposits
         tg_keys = [k for k, v in pending_deposits.items() if v.get("username") == username]

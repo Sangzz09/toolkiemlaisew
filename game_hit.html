@@ -129,6 +129,17 @@ gap:4px;
 .h-lose{color:#ff4444;font-weight:900;text-shadow:0 0 10px rgba(255,68,68,0.5)}
 .h-wait{color:#ffff00;font-weight:bold;opacity:0.8}
 
+/* Tab chọn bàn */
+.ban-tabs{display:flex;gap:8px;justify-content:center;margin-bottom:14px}
+.ban-tab{flex:1;padding:10px 0;border-radius:10px;border:2px solid rgba(0,230,180,0.3);background:rgba(0,0,0,0.3);color:#aaa;font-weight:bold;font-size:14px;cursor:pointer;transition:all 0.25s;text-align:center}
+.ban-tab.active{background:linear-gradient(135deg,#00e6b4,#00b4d8);color:#0a1628;border-color:#00e6b4;box-shadow:0 4px 15px rgba(0,230,180,0.4)}
+.ban-tab:hover:not(.active){border-color:#00e6b4;color:#00e6b4}
+/* Info cược bàn hũ */
+.cuoc-info{display:none;background:rgba(0,60,40,0.4);border:1px solid rgba(0,230,180,0.25);border-radius:10px;padding:10px 12px;margin:10px 0;font-size:13px}
+.cuoc-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
+.cuoc-row:last-child{border:none}
+.cuoc-label{color:#66ccff}.cuoc-val{color:#00ff99;font-weight:bold}
+.loai-cau-badge{display:inline-block;background:rgba(255,200,0,0.15);border:1px solid rgba(255,200,0,0.4);color:#ffd700;border-radius:6px;padding:2px 8px;font-size:12px;margin-left:6px}
 .controls-container {
     position: fixed;
     bottom: 30px;
@@ -224,46 +235,132 @@ async function apiFetch(url) {
 }
 // ──────────────────────────────────────────────────────────────────────────
 
-let gameCode='hit';
-let lastSession=null;
-let lastPredictedSession=null;
-let lastPrediction=null;
-let isPredicting=false;
+// ── API HitClub ──────────────────────────────────────────────────────────
+const API_HIT_MD5 = "https://toolgameai.site/tt.php?id=hellokietne21&key=bomaylakiet&token=ditmemay&game=hitmd5";
+const API_HIT_HU  = "https://apihitclubhu.onrender.com/";
 
-async function refresh(){
-try{
-let r=await apiFetch("/api/predict/hit");
-let j=await r.json();
-let data = (j && j.result) ? j.result : (j && j.data) ? j.data : j;
-if(data && typeof data==='object'){
-updateHitB52(data);
+let currentBan = 'md5'; // 'md5' hoặc 'hu'
+let lastSession = null;
+let lastPrediction = null;
+
+// ── Chuyển bàn ────────────────────────────────────────────────────────────
+function switchBan(ban) {
+    currentBan = ban;
+    document.getElementById('tabMD5').classList.toggle('active', ban === 'md5');
+    document.getElementById('tabHu').classList.toggle('active', ban === 'hu');
+    document.getElementById('cuocInfo').style.display = ban === 'hu' ? 'block' : 'none';
+    // Reset UI
+    document.getElementById('phienText').textContent = '#---';
+    document.getElementById('prediction').innerHTML = '--';
+    document.getElementById('result').textContent = 'Đang chờ...';
+    document.getElementById('status').innerHTML = '<span style="color:#ffaa00">●</span> Đang chuyển bàn...';
+    lastSession = null;
+    refresh();
 }
-}catch(e){console.error('[refresh error]',e)}
+
+// ── Refresh dữ liệu ──────────────────────────────────────────────────────
+async function refresh() {
+    try {
+        if (currentBan === 'md5') {
+            // Gọi qua backend Flask
+            let r = await apiFetch("/api/predict/hit");
+            let j = await r.json();
+            let data = (j && j.result) ? j.result : j;
+            if (data && typeof data === 'object') updateHitMD5(data);
+        } else {
+            // Gọi trực tiếp API hũ
+            let r = await fetch(API_HIT_HU);
+            let data = await r.json();
+            if (data) updateHitHu(data);
+        }
+    } catch(e) {
+        console.error('[refresh error]', e);
+        document.getElementById('status').innerHTML = '<span style="color:#ff4444">●</span> Mất kết nối';
+    }
+}
+
+// ── Cập nhật UI bàn MD5 ──────────────────────────────────────────────────
+function updateHitMD5(data) {
+    let phien = data.phien || "N/A";
+    let phienTiepTheo = phien !== "N/A" ? (parseInt(phien) + 1) : "N/A";
+    if (phien !== "N/A" && lastSession !== phien) {
+        lastSession = phien;
+        triggerRobotEffect();
+    }
+    document.getElementById('phienText').textContent = "#" + phienTiepTheo;
+    let pred = data.du_doan || "N/A";
+    let color = pred === "Tài" ? "#00ff00" : "#ff4444";
+    document.getElementById('prediction').innerHTML = `<span style="color:${color};text-shadow:0 0 15px ${color};">${pred}</span>`;
+    document.getElementById('result').textContent = data.ket_qua || "Đang chờ...";
+    document.getElementById('status').innerHTML = '<span style="color:#00ff00">●</span> Đã kết nối';
+    if (data.history) renderHistory(data.history);
+    updateRobotUI(phien, pred, data.do_tin_cay);
+}
+
+// ── Cập nhật UI bàn Hũ ───────────────────────────────────────────────────
+function updateHitHu(data) {
+    let phienHienTai = data.phien_hien_tai || "---";
+    let phienTiepTheo = data.phien_tiep_theo || "---";
+
+    if (lastSession !== phienHienTai) {
+        lastSession = phienHienTai;
+        triggerRobotEffect();
+    }
+
+    // Phiên hiển thị là phiên đang dự đoán
+    document.getElementById('phienText').textContent = "#" + phienTiepTheo;
+
+    // Dự đoán
+    let pred = data.du_doan || "---";
+    let color = pred === "Tài" ? "#00ff00" : "#ff4444";
+    document.getElementById('prediction').innerHTML = `<span style="color:${color};text-shadow:0 0 15px ${color};">${pred}</span>`;
+
+    // Không có kết quả phiên trước từ API hũ (chỉ có phiên hiện tại)
+    document.getElementById('result').textContent = "Bàn hũ realtime";
+    document.getElementById('status').innerHTML = '<span style="color:#00ff00">●</span> Đã kết nối';
+
+    // Thông tin cược
+    document.getElementById('cuocTai').textContent  = data.cuoc_tai  || "--";
+    document.getElementById('cuocXiu').textContent  = data.cuoc_xiu  || "--";
+    document.getElementById('nguoiTai').textContent = data.nguoi_cuoc_tai  ? data.nguoi_cuoc_tai + " người" : "--";
+    document.getElementById('nguoiXiu').textContent = data.nguoi_cuoc_xiu ? data.nguoi_cuoc_xiu + " người" : "--";
+    document.getElementById('loaiCauText').textContent = data.loai_cau || "--";
+
+    // Độ tin cậy
+    let confRaw = data.do_tin_cay || "72%";
+    let confNum = parseFloat(String(confRaw).replace('%','')) / 100;
+
+    // Robot UI
+    updateRobotUI(phienHienTai, pred, confNum);
+
+    // Pattern / lịch sử dưới dạng text nếu có
+    if (data.pattern_16) {
+        let histEl = document.getElementById('full-history-list');
+        if (histEl && histEl.childElementCount === 0) {
+            let pattern = data.pattern_16;
+            let html = '<div style="padding:8px;color:#aaa;font-size:13px">Pattern 16 phiên: ';
+            for (let c of pattern) {
+                let col = c.toUpperCase() === 'T' ? '#00ff00' : '#ff4444';
+                html += `<span style="color:${col};font-weight:bold">${c.toUpperCase()==='T'?'T':'X'}</span>`;
+            }
+            html += `</div><div style="padding:4px 8px;color:#aaa;font-size:12px">Phiếu Tài: <b style="color:#00ff00">${data.phieu_Tai}</b> | Phiếu Xỉu: <b style="color:#ff4444">${data.phieu_Xiu}</b></div>`;
+            histEl.innerHTML = html;
+        }
+    }
 }
 
 function triggerRobotEffect(){
-let r=document.getElementById("robotAvatar");
-if(r){
-r.classList.remove("robot-flash");
-void r.offsetWidth;
-r.classList.add("robot-flash");
-}
+    let r = document.getElementById("robotAvatar");
+    if(r){ r.classList.remove("robot-flash"); void r.offsetWidth; r.classList.add("robot-flash"); }
 }
 
 function typeWriter(element, text, finalHtml) {
     element.innerHTML = "";
     element.classList.add("typing-cursor");
     let i = 0;
-    let speed = 50;
     function type() {
-        if (i < text.length) {
-            element.textContent += text.charAt(i);
-            i++;
-            setTimeout(type, speed);
-        } else {
-            element.innerHTML = finalHtml;
-            element.classList.remove("typing-cursor");
-        }
+        if (i < text.length) { element.textContent += text.charAt(i++); setTimeout(type, 50); }
+        else { element.innerHTML = finalHtml; element.classList.remove("typing-cursor"); }
     }
     type();
 }
@@ -272,13 +369,8 @@ function toggleRobot(){
     let box = document.getElementById('dragBox');
     let btn = document.getElementById('robotBtn');
     if(box){
-        if(box.style.display === 'none'){
-            box.style.display = 'flex';
-            if(btn) btn.classList.remove('inactive');
-        } else {
-            box.style.display = 'none';
-            if(btn) btn.classList.add('inactive');
-        }
+        if(box.style.display === 'none'){ box.style.display = 'flex'; if(btn) btn.classList.remove('inactive'); }
+        else { box.style.display = 'none'; if(btn) btn.classList.add('inactive'); }
     }
 }
 
@@ -286,18 +378,12 @@ let robotRotation = 0;
 function rotateRobot(){
     robotRotation += 90;
     let avatar = document.getElementById("robotAvatar");
-    if(avatar){
-        avatar.style.transform = `rotate(${robotRotation}deg)`;
-    }
+    if(avatar) avatar.style.transform = `rotate(${robotRotation}deg)`;
 }
 
 function toggleHistoryPanel(){
     let h = document.getElementById('historyPanel');
-    if(h.style.display === 'none' || h.style.display === ''){
-        h.style.display = 'block';
-    } else {
-        h.style.display = 'none';
-    }
+    h.style.display = (h.style.display === 'none' || h.style.display === '') ? 'block' : 'none';
 }
 
 function renderHistory(history){
@@ -307,185 +393,58 @@ function renderHistory(history){
     history.forEach(h => {
         let isCorrect = h.correct;
         if (isCorrect === null || isCorrect === undefined) {
-            if (h.result && h.prediction && (h.result === "Tài" || h.result === "Xỉu")) {
+            if (h.result && h.prediction && (h.result === "Tài" || h.result === "Xỉu"))
                 isCorrect = (h.result === h.prediction);
-            }
         }
         let resClass = isCorrect === true ? 'h-win' : (isCorrect === false ? 'h-lose' : 'h-wait');
-        let resText = isCorrect === true ? 'THẮNG' : (isCorrect === false ? 'THUA' : '???');
-        let actual = h.result ? h.result : '?';
+        let resText  = isCorrect === true ? 'THẮNG' : (isCorrect === false ? 'THUA' : '???');
+        let actual   = h.result ? h.result : '?';
         html += `<div class="h-row"><span class="h-sess">#${h.session}</span><span style="font-weight:bold;color:#fff">${h.prediction} ➔ ${actual}</span><span class="${resClass}">${resText}</span></div>`;
     });
     el.innerHTML = html;
 }
 
 function updateRobotUI(phien, pred, conf){
-    let sessionInfo = document.getElementById("session-info-text");
-    let waitingText = document.getElementById("waiting-text");
+    let sessionInfo   = document.getElementById("session-info-text");
+    let waitingText   = document.getElementById("waiting-text");
     let confidenceBox = document.getElementById("confidence-box");
-    let confidenceText = document.getElementById("confidence");
+    let confidenceText= document.getElementById("confidence");
     if(!sessionInfo) return;
-    if(!phien || phien==="---" || phien==="N/A" || phien==="—"){
+    if(!phien || phien==="---" || phien==="N/A"){
         sessionInfo.innerHTML = "Đang kết nối...";
         waitingText.innerHTML = "Đang tải dữ liệu...";
         confidenceBox.style.display = "none";
         return;
     }
-    let phienTiepTheo = parseInt(phien) + 1;
+    let phienTiepTheo = !isNaN(parseInt(phien)) ? (parseInt(phien)+1) : phien;
     sessionInfo.innerHTML = `Phiên: #${phienTiepTheo}`;
-    sessionInfo.style.display = "block";
-    let confPercent = conf ? Math.round(conf*100) : 72;
+    let confPercent = conf ? (conf > 1 ? Math.round(conf) : Math.round(conf*100)) : 72;
     if(pred && (pred==="Tài" || pred==="Xỉu")){
         let color = pred==="Tài" ? "#00ff00" : "#ff4444";
         let fullHtml = `Dự đoán: <span style="color:${color};font-size:26px;font-weight:900;text-shadow:0 0 15px ${color}">${pred}</span>`;
-        if (waitingText.getAttribute('data-last') !== pred) {
+        if(waitingText.getAttribute('data-last') !== pred){
             typeWriter(waitingText, `Dự đoán: ${pred}`, fullHtml);
             waitingText.setAttribute('data-last', pred);
-        } else {
-            waitingText.innerHTML = fullHtml;
-        }
+        } else { waitingText.innerHTML = fullHtml; }
         confidenceText.innerHTML = `${confPercent}%`;
         confidenceText.style.color = confPercent > 70 ? "#00ff00" : "#ffaa00";
         confidenceBox.style.display = "block";
-    }else{
+    } else {
         waitingText.innerHTML = "Đang chờ kết quả...";
         confidenceBox.style.display = "none";
     }
 }
 
-function normalizePred(raw){
-    if(!raw) return null;
-    let s = String(raw).trim().toLowerCase()
-        .normalize("NFD").replace(/[\u0300-\u036f]/g,"");
-    if(s==='tai'||s==='t'||s==='over'||s==='big'||s==='1') return 'Tài';
-    if(s==='xiu'||s==='x'||s==='under'||s==='small'||s==='0') return 'Xỉu';
-    return null;
-}
-
-function updateGenericGame(data){
-let sessionInfo = document.getElementById("session-info-text");
-let waitingText = document.getElementById("waiting-text");
-let confidenceBox = document.getElementById("confidence-box");
-let confidenceText = document.getElementById("confidence");
-if(!sessionInfo) return;
-let phien = data.Phien || data.phien || data.Session || data.session || data.round || null;
-let rawPred = data.du_doan || data.du_doan_tiep_theo || data.prediction || data.Ket_qua || data.ket_qua || data.KetQua || null;
-let pred = normalizePred(rawPred);
-let conf = data.do_tin_cay || data.confidence || 0.72;
-let confPercent = conf > 1 ? Math.round(conf) : Math.round(conf * 100);
-if((!phien || phien==="---" || phien==="N/A") && !pred){
-sessionInfo.innerHTML = "Đang kết nối...";
-waitingText.innerHTML = "Đang tải dữ liệu...";
-confidenceBox.style.display = "none";
-return;
-}
-let phienTiepTheo = (phien && phien!=="---" && !isNaN(parseInt(phien))) ? (parseInt(phien) + 1) : "---";
-sessionInfo.innerHTML = `Phiên: #${phienTiepTheo}`;
-sessionInfo.style.display = "block";
-if(lastSession !== String(phien)){
-lastSession = String(phien);
-lastPredictedSession = null;
-triggerRobotEffect();
-}
-if(pred){
-let color = pred==="Tài" ? "#00ff00" : "#ff4444";
-let fullHtml = `Dự đoán: <span style="color:${color};font-size:26px;font-weight:900;text-shadow:0 0 15px ${color}">${pred}</span>`;
-if(waitingText.getAttribute('data-last') !== pred){
-    typeWriter(waitingText, `Dự đoán: ${pred}`, fullHtml);
-    waitingText.setAttribute('data-last', pred);
-}else{
-    waitingText.innerHTML = fullHtml;
-}
-confidenceText.innerHTML = `${confPercent}%`;
-confidenceText.style.color = confPercent > 70 ? "#00ff00" : "#ffaa00";
-confidenceBox.style.display = "block";
-lastPredictedSession = String(phien);
-}else{
-waitingText.innerHTML = "Đang chờ kết quả...";
-waitingText.removeAttribute('data-last');
-confidenceBox.style.display = "none";
-}
-if(data.history) renderHistory(data.history);
-}
-
-function updateSicbo(data){
-let sessionInfo = document.getElementById("session-info-text");
-let waitingText = document.getElementById("waiting-text");
-let confidenceBox = document.getElementById("confidence-box");
-let confidenceText = document.getElementById("confidence");
-if(!sessionInfo) return;
-let phienHienTai=data.phien_hien_tai;
-let phienTiepTheo=data.phien_tiep_theo;
-let pred=data.du_doan;
-let conf=data.do_tin_cay || 63;
-let confPercent=typeof conf === 'number' ? conf : parseInt(conf);
-let viDuDoan=data.vi_du_doan || [10,11,12];
-if(!phienTiepTheo || phienTiepTheo==="---"){
-sessionInfo.innerHTML = "Đang kết nối...";
-waitingText.innerHTML = "Đang tải dữ liệu...";
-confidenceBox.style.display = "none";
-return;
-}
-sessionInfo.innerHTML = `Phiên: #${phienTiepTheo}`;
-sessionInfo.style.display = "block";
-if(lastSession !== phienHienTai){
-lastSession = phienHienTai;
-lastPredictedSession = null;
-triggerRobotEffect();
-}
-if(pred && (pred==="Tài" || pred==="Xỉu")){
-let color = pred==="Tài" ? "#00ff00" : "#ff4444";
-let viText = viDuDoan.length > 0 ? `<br><span style="font-size:12px;color:#00e6b4">Vị: ${viDuDoan.join(', ')}</span>` : "";
-let fullHtml = `Dự đoán: <span style="color:${color};font-size:26px;font-weight:900;text-shadow:0 0 15px ${color}">${pred}</span>${viText}`;
-if (waitingText.getAttribute('data-last') !== pred) {
-    typeWriter(waitingText, `Dự đoán: ${pred}`, fullHtml);
-    waitingText.setAttribute('data-last', pred);
-} else {
-    waitingText.innerHTML = fullHtml;
-}
-confidenceText.innerHTML = `${confPercent}%`;
-confidenceBox.style.display = "block";
-lastPredictedSession = phienHienTai;
-}else{
-waitingText.innerHTML = "Đang chờ kết quả...";
-confidenceBox.style.display = "none";
-}
-if(data.history) renderHistory(data.history);
-}
-
-function updateHitB52(data){
-let phienEl=document.getElementById("phienText");
-let predEl=document.getElementById("prediction");
-let resultEl=document.getElementById("result");
-let statusEl=document.getElementById("status");
-if(!phienEl) return;
-let phien = data.phien || "N/A";
-let phienTiepTheo = phien !== "N/A" ? (parseInt(phien) + 1) : "N/A";
-if(phien!=="N/A" && lastSession!==phien){
-lastSession=phien;
-triggerRobotEffect();
-}
-phienEl.textContent="#"+phienTiepTheo;
-let pred=data.du_doan || "N/A";
-let color=pred==="Tài"?"#00ff00":"#ff4444";
-predEl.innerHTML=`<span style="color:${color};text-shadow:0 0 15px ${color};">${pred}</span>`;
-resultEl.textContent=data.ket_qua || "Đang chờ...";
-statusEl.innerHTML='<span style="color:#00ff00">●</span> Đã kết nối';
-if(data.history) renderHistory(data.history);
-updateRobotUI(phien, pred, data.do_tin_cay);
-}
-
 function updateTime(){
-let now=new Date();
-let h=now.getHours().toString().padStart(2,'0');
-let m=now.getMinutes().toString().padStart(2,'0');
-let s=now.getSeconds().toString().padStart(2,'0');
-let clockEl=document.getElementById("clock");
-if(clockEl) clockEl.textContent=h+':'+m+':'+s;
+    let now=new Date();
+    let h=now.getHours().toString().padStart(2,'0');
+    let m=now.getMinutes().toString().padStart(2,'0');
+    let s=now.getSeconds().toString().padStart(2,'0');
+    let clockEl=document.getElementById("clock");
+    if(clockEl) clockEl.textContent=h+':'+m+':'+s;
 }
 
 setInterval(refresh, 3000);
-
 setInterval(updateTime, 1000);
 updateTime();
 refresh();
@@ -526,6 +485,13 @@ retina_detect:true
 <span class="float-3">TÀI</span>
 <span class="float-4">XỈU</span>
 </h2>
+
+<!-- Tab chọn bàn -->
+<div class="ban-tabs">
+  <button class="ban-tab active" id="tabMD5" onclick="switchBan('md5')">🎲 Bàn MD5</button>
+  <button class="ban-tab" id="tabHu" onclick="switchBan('hu')">🏺 Bàn Hũ</button>
+</div>
+
 <div class="prediction-box">
 <div class="prediction-item">
 <div class="label">Phiên tiếp theo</div>
@@ -536,6 +502,16 @@ retina_detect:true
 <div class="value prediction-value" id="prediction">--</div>
 </div>
 </div>
+
+<!-- Info cược (chỉ hiện ở bàn hũ) -->
+<div class="cuoc-info" id="cuocInfo">
+  <div class="cuoc-row"><span class="cuoc-label">💰 Cược Tài</span><span class="cuoc-val" id="cuocTai">--</span></div>
+  <div class="cuoc-row"><span class="cuoc-label">💰 Cược Xỉu</span><span class="cuoc-val" id="cuocXiu">--</span></div>
+  <div class="cuoc-row"><span class="cuoc-label">👥 Người cược Tài</span><span class="cuoc-val" id="nguoiTai">--</span></div>
+  <div class="cuoc-row"><span class="cuoc-label">👥 Người cược Xỉu</span><span class="cuoc-val" id="nguoiXiu">--</span></div>
+  <div class="cuoc-row"><span class="cuoc-label">📊 Loại cầu</span><span class="cuoc-val" id="loaiCauText">--</span></div>
+</div>
+
 <div class="status-info">
 <div class="status-row">
 <span class="stat-label">📊 Kết quả trước:</span>

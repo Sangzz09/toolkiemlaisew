@@ -1116,15 +1116,17 @@ def predict(game, ban="md5"):
     if game == "hit":
         if ban == "hu":
             raw_response = safe_json(API_HIT_HU)
-            if not raw_response or not raw_response.get("success"): return None
-            raw = raw_response.get("data", {})
+            if not raw_response: return None
+            raw = raw_response.get("data", raw_response) if isinstance(raw_response, dict) else raw_response
             
             phien_hien_tai = raw.get("phien_hien_tai")
             phien = str(int(phien_hien_tai) - 1) if phien_hien_tai else "---"
             ket = None  # API hũ không có kết quả phiên trước
-            phien_tiep_theo = str(phien_hien_tai) if phien_hien_tai else "---"
-            api_du = normalize(raw.get("du_doan"))
-            raw_conf = raw.get("confidence")
+            phien_tiep_theo = str(raw.get("phien_tiep_theo") or phien_hien_tai or "---")
+            
+            api_du_raw = raw.get("du_doan")
+            api_du = normalize(api_du_raw) if api_du_raw != "?" else None
+            raw_conf = raw.get("do_tin_cay") or raw.get("confidence")
         else:
             raw_response = safe_json(API_HIT)
             if not raw_response: return None

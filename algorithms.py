@@ -10,7 +10,7 @@ import requests
 API_SUN = "https://crack-production-7f42.up.railway.app/api/sunwin"
 LINK_SUN = "https://t.me/sewdangcap"
 API_HIT = "https://toolgameai.site/tt.php?id=hellokietne21&key=bomaylakiet&token=ditmemay&game=hitmd5"
-API_HIT_HU = "https://toolgameai.site/tt.php?id=hellokietne21&key=bomaylakiet&token=ditmemay&game=hithu"
+API_HIT_HU = "https://apihitclubhu.onrender.com/"
 API_SUM = ""  # SumClub đã bỏ
 LOGO_SUNWIN = "https://i.postimg.cc/q7ybsvSb/IMG-1615.jpg"
 LOGO_HITCLUB = "https://i.postimg.cc/66YHLSbG/IMG-1616.jpg"
