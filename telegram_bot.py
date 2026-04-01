@@ -1345,25 +1345,25 @@ async def cmd_iframegame(update: Update, context: ContextTypes.DEFAULT_TYPE):
     game_code = context.args[0].lower().strip()
     new_link = context.args[1].strip()
 
-    # Danh sách game và file HTML tương ứng
-    GAME_FILES = {
-        "sun":      "game_sun.html",
-        "hit":      "game_hit.html",
-        "hit-hu":   "game_hit.html",   # HitClub bàn hũ dùng chung template
-        "b52":      "game_b52.html",
-        "luck8":    "game_luck8.html",
-        "sicbo":    "game_sicbo.html",
-        "789":      "game_789.html",
-        "68gb":     "game_68gb.html",
-        "68gb-do":  "game_68gb.html",  # 68GB bàn đỏ dùng chung template
-        "lc79":     "game_lc79.html",
-        "sexy":     "game_sexy.html",
+    # Danh sách game hỗ trợ
+    SUPPORTED_GAMES = {
+        "sun":      "sun",
+        "hit":      "hit",
+        "hit-hu":   "hit-hu",
+        "b52":      "b52",
+        "luck8":    "luck8",
+        "sicbo":    "sicbo",
+        "789":      "789",
+        "68gb":     "68gb",
+        "68gb-do":  "68gb-do",
+        "lc79":     "lc79",
+        "sexy":     "sexy",
     }
 
-    if game_code not in GAME_FILES:
+    if game_code not in SUPPORTED_GAMES:
         await update.message.reply_text(
             f"❌ Game '{game_code}' không tồn tại!\n\n"
-            f"🎮 Game hỗ trợ: {', '.join(GAME_FILES.keys())}"
+            f"🎮 Game hỗ trợ: {', '.join(SUPPORTED_GAMES.keys())}"
         )
         return
 
@@ -1376,99 +1376,33 @@ async def cmd_iframegame(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     try:
-        import os, re
+        import os, json
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        html_path = os.path.join(base_dir, GAME_FILES[game_code])
+        config_path = os.path.join(base_dir, "iframe_config.json")
 
-        if not os.path.exists(html_path):
-            await update.message.reply_text(f"❌ Không tìm thấy file: {GAME_FILES[game_code]}")
-            return
-
-        with open(html_path, "r", encoding="utf-8") as f:
-            content = f.read()
+        # Tải config hiện tại
+        if os.path.exists(config_path):
+            with open(config_path, "r", encoding="utf-8") as f:
+                iframe_config = json.load(f)
+        else:
+            iframe_config = {}
 
         # Lưu link cũ để hiển thị
-        old_link_match = re.search(r'<iframe\s[^>]*src="([^"]+)"', content)
-        old_link = old_link_match.group(1) if old_link_match else "(không có)"
+        old_link = iframe_config.get(game_code, "(chưa có link)")
 
-        # Thay link iframe - xử lý cả 2 trường hợp:
-        # 1. Đã có iframe src → thay link
-        # 2. Có div iframe-container nhưng trống → chèn iframe mới
-
-        # Tách link thành 3 phần để obfuscate trong JS
-        proto    = 'https://' if new_link.startswith('https') else 'http://'
-        link_raw = new_link.replace('https://','').replace('http://','')
-        mid      = len(link_raw) // 3
-        p1, p2, p3 = link_raw[:mid], link_raw[mid:mid*2], link_raw[mid*2:]
-        new_parts_js = repr([p1, p2, p3])
-
-        # Ưu tiên 1: Thay mảng _p=[...] trong JS (obfuscated link - dùng khi đã obfuscate)
-        if re.search(r"var _p=\[.*?\]", content):
-            new_content = re.sub(
-                r"var _p=\[.*?\]",
-                f"var _p={new_parts_js}",
-                content,
-                count=1
-            )
-        # Ưu tiên 2: Thay src="about:blank" thành src thật
-        elif re.search(r'<iframe[^>]*src="about:blank"', content):
-            new_content = re.sub(
-                r'(<iframe[^>]*src=")about:blank(")',
-                r'\g<1>' + new_link + r'\g<2>',
-                content,
-                count=1
-            )
-        # Ưu tiên 3: Thay src iframe thật
-        elif re.search(r'<iframe[^>]*src="https?://', content):
-            def _replace_src(m):
-                return m.group(1) + new_link + m.group(2)
-            new_content = re.sub(
-                r'(<iframe[^>]*src=")[^"]*(") *',
-                _replace_src,
-                content,
-                count=1
-            )
-        # Ưu tiên 4: Chèn mới vào iframe-container
-        elif 'class="iframe-container"' in content:
-            # Thêm JS inject link mới + mở container
-            inject_js = f'''
-<script>
-(function(){{
-  var _p={new_parts_js};
-  var _u='{proto}'+_p.join('');
-  var el=document.getElementById('gameFrame')||document.querySelector('iframe');
-  if(el){{ el.src=_u; }}
-}})();
-</script>'''
-            new_content = content.replace('</body>', inject_js + '\n</body>', 1)
-            new_content = new_content.replace(
-                'class="iframe-container" style="display:none"',
-                'class="iframe-container" style="display:block"'
-            )
-        else:
-            await update.message.reply_text(
-                f"❌ Không tìm thấy vị trí iframe trong file {GAME_FILES[game_code]}"
-            )
-            return
-
-        # Ghi lại file
-        with open(html_path, "w", encoding="utf-8") as f:
-            f.write(new_content)
-
-        # Reload template trong bộ nhớ (nếu dùng templates.py cache)
-        try:
-            import templates as tmpl
-            import importlib
-            importlib.reload(tmpl)
-        except Exception:
-            pass
+        # Cập nhật link mới
+        iframe_config[game_code] = new_link
+        
+        # Ghi lại file config
+        with open(config_path, "w", encoding="utf-8") as f:
+            json.dump(iframe_config, f, ensure_ascii=False, indent=2)
 
         await update.message.reply_text(
             f"✅ ĐÃ CẬP NHẬT LINK IFRAME THÀNH CÔNG!\n\n"
             f"🎮 Game: {game_code.upper()}\n"
             f"🔗 Link cũ:\n{old_link}\n\n"
             f"🆕 Link mới:\n{new_link}\n\n"
-            f"⚡ Hiệu lực ngay lập tức!"
+            f"⚡ Hiệu lực ngay lập tức trên web!"
         )
         print(f"[IFRAME] Admin đổi link {game_code}: {old_link} → {new_link}")
 
@@ -1485,38 +1419,34 @@ async def cmd_xemiframe(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⛔ Bạn không có quyền sử dụng lệnh này")
         return
 
-    import os, re
-
-    GAME_FILES = {
-        "sun":      "game_sun.html",
-        "hit":      "game_hit.html",
-        "hit-hu":   "game_hit.html",
-        "b52":      "game_b52.html",
-        "luck8":    "game_luck8.html",
-        "sicbo":    "game_sicbo.html",
-        "789":      "game_789.html",
-        "68gb":     "game_68gb.html",
-        "68gb-do":  "game_68gb.html",
-        "lc79":     "game_lc79.html",
-        "sexy":     "game_sexy.html",
-    }
-
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    lines = ["🔗 LINK IFRAME HIỆN TẠI:\n"]
-
-    for game, filename in GAME_FILES.items():
-        path = os.path.join(base_dir, filename)
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                content = f.read()
-            match = re.search(r'<iframe\s[^>]*src="([^"]+)"', content)
-            link = match.group(1) if match else "❌ Chưa có link"
-        except Exception:
-            link = "⚠️ Không đọc được file"
-
-        lines.append(f"🎮 {game.upper()}: {link}")
-
-    await update.message.reply_text("\n".join(lines))
+    try:
+        import os, json
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        config_path = os.path.join(base_dir, "iframe_config.json")
+        
+        if not os.path.exists(config_path):
+            await update.message.reply_text("❌ File config iframe chưa được tạo!")
+            return
+        
+        with open(config_path, "r", encoding="utf-8") as f:
+            iframe_config = json.load(f)
+        
+        lines = ["🔗 LINK IFRAME HIỆN TẠI:\n", "━━━━━━━━━━━━━━━━━━━━━\n"]
+        
+        for game, link in sorted(iframe_config.items()):
+            if link:
+                # Cắt link dài để hiển thị gọn
+                display_link = link if len(link) <= 60 else link[:57] + "..."
+                lines.append(f"🎮 {game.upper()}: {display_link}")
+            else:
+                lines.append(f"🎮 {game.upper()}: ❌ Chưa có link")
+        
+        await update.message.reply_text("\n".join(lines))
+        
+    except Exception as e:
+        await update.message.reply_text(f"❌ Lỗi khi đọc config:\n{str(e)}")
+        import traceback
+        traceback.print_exc()
 
 
 async def cmd_xuatdata(update: Update, context: ContextTypes.DEFAULT_TYPE):

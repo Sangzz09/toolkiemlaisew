@@ -448,13 +448,56 @@ def game(gcode):
     if not template:
         return redirect(url_for("main.menu"))
 
-    # FIX: Tự động cập nhật link iframe Sunwin/Sicbo mới nhất
-    if gcode in ['sun', 'sicbo']:
-        template = template.replace("web.sunwin.lt", "web.sunwin.ca")
-        template = template.replace("web.sunwin.gg", "web.sunwin.ca")
-        template = template.replace("web.sunwin.pw", "web.sunwin.ca")
-        template = template.replace("web.sunwin.id", "web.sunwin.ca")
-        template = template.replace("web.sunwin.ag", "web.sunwin.ca")
+    # ─────────────────────────────────────────────────────────────────
+    # FIX: Inject dynamic iframe loading từ config (thay thế hardcoded link)
+    # ─────────────────────────────────────────────────────────────────
+    # Script này sẽ tự động fetch iframe link từ API thay vì hardcoded
+    dynamic_iframe_script = f'''
+<script>
+(function() {{
+  var gameCode = '{gcode}';
+  var updateIframe = function() {{
+    fetch('/api/get-iframe/' + gameCode)
+      .then(r => r.json())
+      .then(data => {{
+        if(data.ok && data.iframe_url) {{
+          var iframes = document.querySelectorAll('iframe');
+          iframes.forEach(iframe => {{
+            if(iframe.id === 'gameFrame' || !iframe.src || iframe.src === '' || iframe.src === 'about:blank') {{
+              iframe.src = data.iframe_url;
+              console.log('[IFRAME-LOADER] Updated iframe link for ' + gameCode + ': ' + data.iframe_url);
+            }}
+          }});
+          
+          // Cũng xử lý các container của iframe
+          var container = document.querySelector('.iframe-container');
+          if(container && container.style.display === 'none') {{
+            container.style.display = 'block';
+          }}
+        }}
+      }})
+      .catch(e => console.error('[IFRAME-LOADER] Error loading iframe:', e));
+  }};
+  
+  // Update ngay lập tức khi document ready
+  if(document.readyState === 'loading') {{
+    document.addEventListener('DOMContentLoaded', updateIframe);
+  }} else {{
+    updateIframe();
+  }}
+  
+  // Update lại mỗi 30 giây để lấy link mới nhất (nếu admin thay link via bot)
+  setInterval(updateIframe, 30000);
+}})();
+</script>
+'''
+    
+    # Inject script vào template (trước </body>)
+    if '</body>' in template:
+        template = template.replace('</body>', dynamic_iframe_script + '\n</body>')
+    else:
+        # Nếu không có </body> thì thêm vào cuối
+        template += dynamic_iframe_script
 
     return render_template_string(template)
 
@@ -839,6 +882,43 @@ def api_cancel_deposit():
         return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)})
+
+@bp.route("/api/get-iframe/<game>")
+def api_get_iframe(game):
+    """
+    Lấy link iframe cho game cụ thể.
+    Dùng để frontend fetch link dynamically.
+    Endpoint này KHÔNG cần đăng nhập để tránh miss iframe khi load.
+    """
+    try:
+        import os, json
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        config_path = os.path.join(base_dir, "iframe_config.json")
+        
+        # Tải config
+        if not os.path.exists(config_path):
+            return jsonify({"ok": False, "error": "Config not found"}), 404
+        
+        with open(config_path, "r", encoding="utf-8") as f:
+            iframe_links = json.load(f)
+        
+        game = game.lower().strip()
+        if game not in iframe_links:
+            return jsonify({"ok": False, "error": f"Game '{game}' not supported"}), 404
+        
+        link = iframe_links.get(game, "")
+        if not link:
+            return jsonify({"ok": False, "error": f"No iframe link for game '{game}'"}), 404
+        
+        return jsonify({
+            "ok": True,
+            "game": game,
+            "iframe_url": link,
+            "updated_at": os.path.getmtime(config_path)
+        })
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
 
 @bp.route("/ping")
 def ping():

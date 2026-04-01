@@ -1119,10 +1119,10 @@ def predict(game, ban="md5"):
             if not raw_response: return None
             raw = raw_response.get("data", raw_response) if isinstance(raw_response, dict) else raw_response
             
-            phien_hien_tai = raw.get("phien_hien_tai")
-            phien = str(int(phien_hien_tai) - 1) if phien_hien_tai else "---"
+            phien_hien_tai = str(raw.get("phien_hien_tai", "")).replace("#", "").strip()
+            phien = str(int(phien_hien_tai) - 1) if phien_hien_tai.isdigit() else "---"
             ket = None  # API hũ không có kết quả phiên trước
-            phien_tiep_theo = str(raw.get("phien_tiep_theo") or phien_hien_tai or "---")
+            phien_tiep_theo = str(raw.get("phien_tiep_theo") or phien_hien_tai or "---").replace("#", "")
             
             api_du_raw = raw.get("du_doan")
             api_du = normalize(api_du_raw) if api_du_raw != "?" else None
