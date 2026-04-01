@@ -20,22 +20,27 @@ except ImportError:
     TELEGRAM_AVAILABLE = False
 
 async def log_all_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print(f"[DEBUG] log_all_messages được gọi!")
-    if update.message:
+    """
+    Xử lý tin nhắn không phải lệnh.
+    - Chỉ xử lý tin nhắn xác nhận chuyển khoản "TÔI ĐÃ CHUYỂN KHOẢN" trong nhóm
+    - Bỏ qua các tin nhắn thường khác (không trả lời)
+    """
+    if update.message and update.message.text:
         user = update.effective_user
-        msg_text = update.message.text or "[No text]"
-        print(
-            f"📨 Message từ {user.username or user.first_name} (ID: {user.id}): {msg_text}"
-        )
+        msg_text = update.message.text
+        is_group = update.message.chat.type in ["group", "supergroup"]
+        
+        print(f"[DEBUG] log_all_messages - Nhóm: {is_group}, Text: {msg_text[:40]}")
 
         # Check if user is banned from Telegram bot
         db = load_db()
         if user.id in db.get("blocked_telegram_ids", []):
-            await update.message.reply_text(
-                "⛔ Tài khoản của bạn đã bị chặn bot.")
+            print(f"[DEBUG] User bị chặn: {user.id}")
             return
 
-        if msg_text and "TÔI ĐÃ CHUYỂN KHOẢN" in msg_text.upper():
+        # Chỉ xử lý xác nhận chuyển khoản từ nhóm
+        if msg_text and "TÔI ĐÃ CHUYỂN KHOẢN" in msg_text.upper() and is_group:
+            print(f"[DEBUG] Phát hiện xác nhận chuyển khoản")
             user_id = user.id
             user_telegram = user.username or user.first_name
             user_fullname = user.first_name + (f" {user.last_name}"
@@ -51,12 +56,12 @@ async def log_all_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             if found_deposit:
                 admin_msg = (
-                    f"✅ XÁC NHẬN CHUYỂN KHOẢN (Telegram)\n\n"
+                    f"✅ XÁC NHẬN CHUYỂN KHOẢN (Telegram - Nhóm)\n\n"
                     f"👤 Tên: {user_fullname}\n"
                     f"📱 Telegram: @{user_telegram} (ID: {user_id})\n"
                     f"🎮 Tài khoản: {found_deposit['username']}\n"
                     f"💵 Số tiền: {found_deposit['amount']:,}đ\n\n"
-                    f"💬 User đã xác nhận chuyển khoản!\n\n"
+                    f"💬 User xác nhận chuyển khoản trong nhóm!\n\n"
                     f"Duyệt: /duyet {found_deposit['username']}")
 
                 try:
@@ -69,22 +74,22 @@ async def log_all_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     # Remove the deposit after confirmation to avoid duplicate processing
                     if deposit_key_to_remove:
                         del pending_deposits[deposit_key_to_remove]
+                    print(f"[DEBUG] ✅ Xác nhận thanh toán được xử lý")
                 except Exception as e:
-                    print(f"Lỗi gửi thông báo admin: {e}")
+                    print(f"❌ Lỗi gửi thông báo admin: {e}")
             else:
-                await update.message.reply_text(
-                    f"❌ Không tìm thấy yêu cầu nạp tiền!\n\n"
-                    f"Vui lòng gửi lệnh /nap trước khi xác nhận chuyển khoản.")
+                print(f"[DEBUG] Không tìm thấy yêu cầu nạp tiền cho user {user_id}")
+                # Không trả lời khi không tìm thấy yêu cầu nạp
+                return
         else:
-            # Trả lời cho tất cả tin nhắn khác
-            await update.message.reply_text(
-                "👋 Xin chào! Tôi là bot của SHOP MINHSANG.\n\n"
-                "📋 Để xem các lệnh, gửi /help\n"
-                "🎰 Để nạp tiền, gửi /nap <username> <số_tiền>")
+            # Bỏ qua các tin nhắn thường - không trả lời
+            # Chỉ log để debug
+            print(f"[DEBUG] Bỏ qua tin nhắn thường từ {'nhóm' if is_group else 'DM'}: {msg_text[:40]}")
+            return
     elif update.edited_message:
-        print(f"✏️ Edited message received")
+        print(f"[DEBUG] ✏️ Edited message received")
     else:
-        print(f"📥 Update received: {update}")
+        print(f"[DEBUG] 📥 Update received: {type(update)}")
 
 
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):

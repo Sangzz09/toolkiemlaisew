@@ -86,7 +86,8 @@ def save_log(ip, username, path, ua):
 # ══════════════════════════════════════════════════════════════
 def send_alert(ip, username, path, ua):
     now = time.time()
-    if now - _last_alert.get(ip, 0) < 60:
+    # Throttle 120s instead of 60s để giảm spam
+    if now - _last_alert.get(ip, 0) < 120:
         return
     _last_alert[ip] = now
     try:
@@ -215,6 +216,21 @@ def detect_and_block():
             return make_response(_blocked_html(ip), 403)
 
     # ── 2. CHỈ KIỂM TRA CRACK KHI GỌI /api/predict/* ──────────────────────
+    # Bỏ qua các request quét máy chủ thông thường (WordPress, cPanel, v.v.)
+    IGNORED_PATHS = [
+        "/wp-admin", "/wp-login", "/wp-content", "/wp-includes",
+        "/admin", "/administrator", "/xmlrpc.php",
+        "/phpmyadmin", "/cpanel", "/plesk",
+        "/.git", "/.svn", "/.env", "/config.php",
+        "/index.php", "/favicon.ico", "/.well-known",
+        "/robots.txt", "/sitemap.xml"
+    ]
+    
+    # Nếu là path bị ignore → không log, không alert
+    for ignored in IGNORED_PATHS:
+        if request.path.lower().startswith(ignored):
+            return None
+
     if not request.path.startswith("/api/predict"):
         return None
 
@@ -224,7 +240,7 @@ def detect_and_block():
     csrf     = request.headers.get("X-CSRF-Token", "").strip()
 
     if not csrf:
-        # Gọi thẳng từ ngoài không qua web
+        # Gọi thẳng từ ngoài không qua web (F12 hoặc script)
         save_log(ip, username, request.path, ua)
         send_alert(ip, username, request.path, ua)
         print(f"[CRACK] {ip} | {username} | no CSRF")

@@ -1114,6 +1114,17 @@ def predict(game, ban="md5"):
         }
 
     if game == "hit":
+        # Initialize variables for both branches
+        loai_cau = None
+        pattern_16 = None
+        cuoc_tai = None
+        cuoc_xiu = None
+        nguoi_cuoc_tai = None
+        nguoi_cuoc_xiu = None
+        phieu_tai = None
+        phieu_xiu = None
+        lich_su_count = None
+        
         if ban == "hu":
             raw_response = safe_json(API_HIT_HU)
             if not raw_response: return None
@@ -1127,6 +1138,17 @@ def predict(game, ban="md5"):
             api_du_raw = raw.get("du_doan")
             api_du = normalize(api_du_raw) if api_du_raw != "?" else None
             raw_conf = raw.get("do_tin_cay") or raw.get("confidence")
+            
+            # Lấy thêm thông tin chi tiết từ API Hũ
+            loai_cau = raw.get("loai_cau", "Cầu thường")
+            pattern_16 = raw.get("pattern_16", "")
+            cuoc_tai = raw.get("cuoc_tai", "0")
+            cuoc_xiu = raw.get("cuoc_xiu", "0")
+            nguoi_cuoc_tai = raw.get("nguoi_cuoc_tai", 0)
+            nguoi_cuoc_xiu = raw.get("nguoi_cuoc_xiu", 0)
+            phieu_tai = raw.get("phieu_Tai", 0)
+            phieu_xiu = raw.get("phieu_Xiu", 0)
+            lich_su_count = raw.get("lich_su_count", 0)
         else:
             raw_response = safe_json(API_HIT)
             if not raw_response: return None
@@ -1173,7 +1195,8 @@ def predict(game, ban="md5"):
             
         record_prediction("hit", phien_tiep_theo, du, conf)
 
-        return {
+        # Response chung cho HitClub, nhưng thêm dữ liệu riêng cho bàn Hũ
+        response = {
             "game": "HitClub",
             "phien": phien,
             "phien_du_doan": phien_tiep_theo,
@@ -1184,6 +1207,22 @@ def predict(game, ban="md5"):
             "accuracy": f"{STATS['hit']['correct']}/{STATS['hit']['total']}" if STATS['hit']['total'] > 0 else "0/0",
             "history": get_formatted_history("hit")
         }
+        
+        # Thêm dữ liệu chi tiết cho bàn Hũ
+        if ban == "hu":
+            response.update({
+                "loai_cau": loai_cau,
+                "pattern_16": pattern_16,
+                "cuoc_tai": cuoc_tai,
+                "cuoc_xiu": cuoc_xiu,
+                "nguoi_cuoc_tai": nguoi_cuoc_tai,
+                "nguoi_cuoc_xiu": nguoi_cuoc_xiu,
+                "phieu_tai": phieu_tai,
+                "phieu_xiu": phieu_xiu,
+                "lich_su_count": lich_su_count
+            })
+        
+        return response
 
     if game == "789":
         raw = safe_json(API_789)
