@@ -1232,15 +1232,19 @@ def predict(game, ban="md5"):
         # API mới trả về {"data": [...]} - lọc lấy bàn xanh "key": "banxanh"
         raw_all = safe_json(API_68GB)
         raw = None
+        
+        target_key = "banxanh"
+        if ban == "do": target_key = "bando"
+
         if raw_all:
             data_list = raw_all.get("data", [])
             if isinstance(data_list, list):
                 for item in data_list:
-                    if item.get("key") == "banxanh" or item.get("game","").upper() == "BÀN XANH":
+                    if item.get("key") == target_key or item.get("game","").upper() == target_key.upper().replace("BAN", "BÀN "):
                         raw = item
                         break
             # Fallback: nếu API trả thẳng object (không có data wrapper)
-            if not raw and raw_all.get("key") == "banxanh":
+            if not raw and raw_all.get("key") == target_key:
                 raw = raw_all
         if not raw:
             # Fallback: Dự đoán từ lịch sử nội bộ nếu API lỗi
@@ -1302,11 +1306,18 @@ def predict(game, ban="md5"):
         
         record_prediction("68gb", phien_tiep_theo, du, conf)
 
-        x1 = raw.get("Xuc_xac_1") or raw.get("xuc_xac_1")
-        x2 = raw.get("Xuc_xac_2") or raw.get("xuc_xac_2")
-        x3 = raw.get("Xuc_xac_3") or raw.get("xuc_xac_3")
-        tong = raw.get("Tong") or raw.get("tong")
-        xuc_xac = [x1, x2, x3] if (x1 is not None and x2 is not None and x3 is not None) else [0, 0, 0]
+        xuc_xac_raw = raw.get("xuc_xac")
+        if isinstance(xuc_xac_raw, list) and len(xuc_xac_raw) == 3:
+            xuc_xac = xuc_xac_raw
+        else:
+            x1 = raw.get("Xuc_xac_1") or raw.get("xuc_xac_1")
+            x2 = raw.get("Xuc_xac_2") or raw.get("xuc_xac_2")
+            x3 = raw.get("Xuc_xac_3") or raw.get("xuc_xac_3")
+            xuc_xac = [x1, x2, x3] if (x1 is not None and x2 is not None and x3 is not None) else [0, 0, 0]
+            
+        tong = raw.get("tong") or raw.get("Tong")
+        if tong is None and xuc_xac != [0, 0, 0]:
+            tong = sum(int(x) for x in xuc_xac if x is not None)
 
         return {
             "game": "68 Game Bài",

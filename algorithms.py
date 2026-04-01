@@ -8,8 +8,8 @@ import requests
 
 # ================== API GAMES ==================
 API_SUN = "https://crack-production-7f42.up.railway.app/api/sunwin"
-LINK_SUN = "https://web.sunwin.ag/?affId=Sunwin"
-API_HIT = "https://toolgameai.site/tt.php?id=hellokietne21&key=bomaylakiet&token=ditmemay&game=hithu"
+LINK_SUN = "https://t.me/sewdangcap"
+API_HIT = "https://toolgameai.site/tt.php?id=hellokietne21&key=bomaylakiet&token=ditmemay&game=hitmd5"
 API_HIT_HU = "https://toolgameai.site/tt.php?id=hellokietne21&key=bomaylakiet&token=ditmemay&game=hithu"
 API_SUM = ""  # SumClub đã bỏ
 LOGO_SUNWIN = "https://i.postimg.cc/q7ybsvSb/IMG-1615.jpg"
@@ -21,7 +21,7 @@ API_B52B = "https://b52-taixiu-l69b.onrender.com/api/taixiu"
 API_LUCK8 = "https://luck8md5vip-4vph.onrender.com/api/taixiu"
 LOGO_LUCK8 = "https://i.postimg.cc/tg4Pgzzt/IMG-1702.jpg"
 API_SICBO = "https://sicsunnehahahaha.onrender.com/predict"
-LINK_SICBO = "https://web.sunwin.ag/?affId=Sunwin"
+LINK_SICBO = "https://t.me/sewdangcap"
 LOGO_SICBO = "https://i.postimg.cc/fR36RRwD/IMG-2036.jpg"
 API_789 = "https://api789hix.hacksieucap.pro/taixiuv3"
 LOGO_789 = "https://i.postimg.cc/43HWjS37/789.webp"

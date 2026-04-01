@@ -18,8 +18,8 @@ ALLOWED_DOMAINS = [
 # ================== RESPONSE TU CHOI ==================
 BLOCKED_RESPONSE = {
     "ok": False,
-    "error": "tu\u1ed5i \u0111\u00e9ll m\u00e0 \u0111\u00f2i l\u1ea5y \U0001f595",
-    "code": 403
+    "error": "Truy cập bị từ chối. Yêu cầu của bạn không hợp lệ hoặc không đến từ một nguồn được phép.",
+    "code": 403,
 }
 
 # ================== WHITELIST PATHS ==================

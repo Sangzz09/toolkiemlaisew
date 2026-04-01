@@ -30,11 +30,12 @@ def _get_client_fingerprint():
     return f"{ip}:{ua}"
 
 def generate_csrf_token() -> str:
-    """Tạo token gắn với username + fingerprint + time slot 5 phút"""
-    username    = session.get("username", "anon")
-    fp          = _get_client_fingerprint()
-    slot        = str(int(time.time()) // TOKEN_TTL)
-    raw         = f"{username}:{fp}:{slot}:{SECRET}"
+    """Tạo token gắn với username + session id + time slot 5 phút"""
+    username = session.get("username", "anon")
+    # Dùng SECRET_KEY của Flask session thay vì IP (IP thay đổi qua proxy Render)
+    sid  = session.get("_sid", SECRET[:8])
+    slot = str(int(time.time()) // TOKEN_TTL)
+    raw  = f"{username}:{sid}:{slot}:{SECRET}"
     return hmac.new(SECRET.encode(), raw.encode(), hashlib.sha256).hexdigest()
 
 def verify_csrf_token() -> bool:
@@ -42,11 +43,11 @@ def verify_csrf_token() -> bool:
     if not token or len(token) != 64:
         return False
     username = session.get("username", "anon")
-    fp       = _get_client_fingerprint()
+    sid  = session.get("_sid", SECRET[:8])
     # Chấp nhận slot hiện tại và slot trước (tránh expire giữa chừng)
     for offset in [0, -1]:
         slot = str(int(time.time()) // TOKEN_TTL + offset)
-        raw  = f"{username}:{fp}:{slot}:{SECRET}"
+        raw  = f"{username}:{sid}:{slot}:{SECRET}"
         exp  = hmac.new(SECRET.encode(), raw.encode(), hashlib.sha256).hexdigest()
         if hmac.compare_digest(token, exp):
             return True
@@ -57,10 +58,10 @@ def verify_csrf_token() -> bool:
 # ══════════════════════════════════════════════════════════════
 def set_session_fingerprint():
     """Gọi sau khi login thành công"""
-    fp = _get_client_fingerprint()
-    session["_fp"] = hmac.new(
-        SECRET.encode(), fp.encode(), hashlib.sha256
-    ).hexdigest()[:16]
+    import secrets as _sec
+    # Tạo session ID ngẫu nhiên để bind token
+    if "_sid" not in session:
+        session["_sid"] = _sec.token_hex(8)
     session["_ts"] = int(time.time())
 
 def verify_session_fingerprint() -> bool:
@@ -175,8 +176,10 @@ RATE_BLOCKED = {"ok": False, "error": "Quá nhiều request. Thử lại sau.", 
 
 def api_protected(f):
     """
-    Decorator bảo vệ đầy đủ cho API route:
-    Session login + Fingerprint + CSRF token + Rate limit
+    Decorator bảo vệ API:
+    1. Phải đăng nhập (session)
+    2. Rate limit (chống spam)
+    3. CSRF token (chặn curl/script bên ngoài)
     """
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -184,21 +187,16 @@ def api_protected(f):
         if "username" not in session:
             return jsonify({"ok": False, "error": "Vui lòng đăng nhập", "code": 401}), 401
 
-        # 2. Kiểm tra fingerprint (chống đánh cắp cookie)
-        if not verify_session_fingerprint():
-            session.clear()
-            return jsonify({"ok": False, "error": "Phiên không hợp lệ", "code": 401}), 401
-
-        # 3. Rate limit
+        # 2. Rate limit
         if check_rate_limit():
             ip = request.remote_addr
             _notify_admin(ip, "Rate limit vượt ngưỡng")
             return jsonify(RATE_BLOCKED), 429
 
-        # 4. CSRF token
+        # 3. CSRF token (chặn curl/python-requests không có token)
         if not verify_csrf_token():
             ip = request.remote_addr
-            _notify_admin(ip, "CSRF token sai/thiếu")
+            _notify_admin(ip, "CSRF token sai/thiếu - " + request.path)
             return jsonify(BLOCKED), 403
 
         return f(*args, **kwargs)

@@ -37,9 +37,10 @@ def csrf_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if not verify_csrf_token():
+            print(f"[CSRF-BLOCK] Chan yeu cau toi '{request.path}' do thieu/sai CSRF token.")
             return jsonify({
                 "ok":    False,
-                "error": "tuổi đéll mà đòi lấy 🖕 Không có quyền truy cập.",
+                "error": "Phiên làm việc không hợp lệ hoặc đã hết hạn. Vui lòng tải lại trang và thử lại.",
                 "code":  403
             }), 403
         return f(*args, **kwargs)
