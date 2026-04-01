@@ -95,6 +95,43 @@ def process_sepay_webhook(payload: dict) -> dict:
         print("[SEPAY DEBUG] ❌ Lỗi: Thiếu nội dung hoặc số tiền <= 0")
         return {"success": False, "message": "missing content or amount"}
 
+    # >>> LOGIC MỚI: Ưu tiên xử lý cú pháp "NAP <username>" từ nhóm
+    content_upper = content.upper()
+    if content_upper.startswith("NAP "):
+        parts = content.split()
+        if len(parts) >= 2:
+            username = parts[1]
+            db = load_db()
+            if username in db.get("users", {}):
+                # Chống xử lý trùng
+                done_ids = [t.get("sepay_txn_id") for t in db.get("transactions", []) if t.get("sepay_txn_id")]
+                if txn_id and txn_id in done_ids:
+                    print(f"[SEPAY DEBUG] ⚠️ Giao dịch {txn_id} (NAP <user>) đã được xử lý. Bỏ qua.")
+                    return {"success": True, "message": "already processed"}
+
+                # Cộng tiền
+                db["users"][username]["balance"] += amount
+                db.setdefault("transactions", []).append({
+                    "type": "deposit", "username": username, "amount": amount,
+                    "time": time.time(), "status": "completed", "method": "sepay_auto_group",
+                    "transfer_content": content, "sepay_txn_id": txn_id
+                })
+                save_db(db)
+                new_balance = db["users"][username]["balance"]
+
+                # Thông báo admin
+                _notify(
+                    f"✅ NẠP TIỀN TỰ ĐỘNG (NHÓM)\n\n"
+                    f"👤 Tài khoản: {username}\n"
+                    f"💰 +{amount:,}đ\n"
+                    f"💎 Số dư mới: {new_balance:,}đ\n"
+                    f"📝 {content}"
+                )
+                return {"success": True, "message": f"deposited {amount} for {username} via group command"}
+            else:
+                _notify(f"⚠️ NHẬN {amount:,}đ - USER KHÔNG TỒN TẠI\n📝 {content}")
+                return {"success": True, "message": "user not found but ignored"}
+
     # Dọn đơn hết hạn (15 phút)
     pending = _load()
     now     = time.time()

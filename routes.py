@@ -655,11 +655,6 @@ def api_predict(game):
 
     game = game.lower()
     
-    # Map alias game mới sang game gốc trong HIST
-    GAME_ALIAS = {
-        "68gb-do": "68gb",
-        "hit-hu":  "hit",
-    }
     # Lấy ban param từ URL hoặc tự suy từ gcode
     if game == "68gb-do":
         ban = request.args.get("ban", "do")
@@ -668,10 +663,9 @@ def api_predict(game):
     else:
         ban = request.args.get("ban", "md5")
     
-    game_for_hist = GAME_ALIAS.get(game, game)
-    if game_for_hist not in HIST:
+    if game not in HIST:
         return jsonify({"ok": False, "error": "invalid game"})
-    r = predict(game_for_hist, ban=ban)
+    r = predict(game, ban=ban)
     return jsonify({"ok": bool(r), "result": r})
 
 

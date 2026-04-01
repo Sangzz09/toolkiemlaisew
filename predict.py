@@ -15,12 +15,14 @@ CAU_HISTORY_FILE  = os.path.join(_BASE_DIR, "cau_history.json")
 HIST = {
     "sun": deque(maxlen=10000),
     "hit": deque(maxlen=10000),
+    "hit-hu": deque(maxlen=10000),
     "sum": deque(maxlen=10000),
     "b52": deque(maxlen=10000),
     "luck8": deque(maxlen=30),  # Luck8 chỉ giữ 30 phiên để tự động reset
     "sicbo": deque(maxlen=10000),
     "789": deque(maxlen=10000),
     "68gb": deque(maxlen=10000),
+    "68gb-do": deque(maxlen=10000),
     "lc79": deque(maxlen=10000),
     "sexy": deque(maxlen=10000)
 }
@@ -33,12 +35,14 @@ SICBO_TOTALS = deque(maxlen=30)
 PREDICTION_HISTORY = {
     "sun": deque(maxlen=10),
     "hit": deque(maxlen=10),
+    "hit-hu": deque(maxlen=10),
     "sum": deque(maxlen=10),
     "b52": deque(maxlen=10),
     "luck8": deque(maxlen=10),
     "sicbo": deque(maxlen=10),
     "789": deque(maxlen=10),
     "68gb": deque(maxlen=10),
+    "68gb-do": deque(maxlen=10),
     "lc79": deque(maxlen=10),
     "sexy": deque(maxlen=10)
 }
@@ -49,6 +53,10 @@ STATS = {
         "total": 0
     },
     "hit": {
+        "correct": 0,
+        "total": 0
+    },
+    "hit-hu": {
         "correct": 0,
         "total": 0
     },
@@ -76,6 +84,10 @@ STATS = {
         "correct": 0,
         "total": 0
     },
+    "68gb-do": {
+        "correct": 0,
+        "total": 0
+    },
     "lc79": {
         "correct": 0,
         "total": 0
@@ -90,12 +102,14 @@ STATS = {
 CAU_HISTORY = {
     "sun": {"don": [], "kep": [], "dai": [], "xien": [], "lung": []},
     "hit": {"don": [], "kep": [], "dai": [], "xien": [], "lung": []},
+    "hit-hu": {"don": [], "kep": [], "dai": [], "xien": [], "lung": []},
     "sum": {"don": [], "kep": [], "dai": [], "xien": [], "lung": []},
     "b52": {"don": [], "kep": [], "dai": [], "xien": [], "lung": []},
     "luck8": {"don": [], "kep": [], "dai": [], "xien": [], "lung": []},
     "sicbo": {"don": [], "kep": [], "dai": [], "xien": [], "lung": []},
     "789": {"don": [], "kep": [], "dai": [], "xien": [], "lung": []},
     "68gb": {"don": [], "kep": [], "dai": [], "xien": [], "lung": []},
+    "68gb-do": {"don": [], "kep": [], "dai": [], "xien": [], "lung": []},
     "lc79": {"don": [], "kep": [], "dai": [], "xien": [], "lung": []},
     "sexy": {"don": [], "kep": [], "dai": [], "xien": [], "lung": []}
 }
@@ -158,7 +172,7 @@ def load_cau_history():
         if os.path.exists(CAU_HISTORY_FILE):
             with open(CAU_HISTORY_FILE) as f:
                 data = json.load(f)
-                for game in ["sun", "hit", "sum", "b52", "luck8", "sicbo", "789", "68gb", "lc79", "sexy"]:
+                for game in ["sun", "hit", "hit-hu", "sum", "b52", "luck8", "sicbo", "789", "68gb", "68gb-do", "lc79", "sexy"]:
                     if game in data:
                         CAU_HISTORY[game] = data[game]
     except Exception as e:
@@ -170,12 +184,14 @@ def save_history():
         history_data = {
             "sun": list(HIST["sun"]),
             "hit": list(HIST["hit"]),
+            "hit-hu": list(HIST["hit-hu"]),
             "sum": list(HIST["sum"]),
             "b52": list(HIST["b52"]),
             "luck8": list(HIST["luck8"]),
             "sicbo": list(HIST["sicbo"]),
             "789": list(HIST["789"]),
             "68gb": list(HIST["68gb"]),
+            "68gb-do": list(HIST["68gb-do"]),
             "lc79": list(HIST["lc79"]),
             "sexy": list(HIST["sexy"]),
             "stats": STATS,
@@ -193,7 +209,7 @@ def load_history():
         if os.path.exists(HISTORY_FILE):
             with open(HISTORY_FILE) as f:
                 data = json.load(f)
-                for game in ["sun", "hit", "sum", "b52", "luck8", "sicbo", "789", "68gb", "lc79", "sexy"]:
+                for game in ["sun", "hit", "hit-hu", "sum", "b52", "luck8", "sicbo", "789", "68gb", "68gb-do", "lc79", "sexy"]:
                     maxlen = 30 if game == "luck8" else 10000
                     HIST[game] = deque(data.get(game, []), maxlen=maxlen)
                     if game in data.get("stats", {}):
@@ -207,12 +223,14 @@ def save_prediction_history():
         pred_data = {
             "sun": list(PREDICTION_HISTORY["sun"]),
             "hit": list(PREDICTION_HISTORY["hit"]),
+            "hit-hu": list(PREDICTION_HISTORY["hit-hu"]),
             "sum": list(PREDICTION_HISTORY["sum"]),
             "b52": list(PREDICTION_HISTORY["b52"]),
             "luck8": list(PREDICTION_HISTORY["luck8"]),
             "sicbo": list(PREDICTION_HISTORY["sicbo"]),
             "789": list(PREDICTION_HISTORY["789"]),
             "68gb": list(PREDICTION_HISTORY["68gb"]),
+            "68gb-do": list(PREDICTION_HISTORY["68gb-do"]),
             "lc79": list(PREDICTION_HISTORY["lc79"]),
             "sexy": list(PREDICTION_HISTORY["sexy"]),
             "last_update": time.time()
@@ -228,7 +246,7 @@ def load_prediction_history():
         if os.path.exists(PRED_HISTORY_FILE):
             with open(PRED_HISTORY_FILE) as f:
                 data = json.load(f)
-                for game in ["sun", "hit", "sum", "b52", "luck8", "sicbo", "789", "68gb", "lc79", "sexy"]:
+                for game in ["sun", "hit", "hit-hu", "sum", "b52", "luck8", "sicbo", "789", "68gb", "68gb-do", "lc79", "sexy"]:
                     PREDICTION_HISTORY[game] = deque(data.get(game, []), maxlen=10)
     except Exception as e:
         print(f"Lỗi tải lịch sử dự đoán: {e}")
@@ -1113,7 +1131,7 @@ def predict(game, ban="md5"):
             "history": get_formatted_history("sun")
         }
 
-    if game == "hit":
+    if game in ("hit", "hit-hu"):
         # Initialize variables for both branches
         loai_cau = None
         pattern_16 = None
@@ -1124,14 +1142,16 @@ def predict(game, ban="md5"):
         phieu_tai = None
         phieu_xiu = None
         lich_su_count = None
+        xuc_xac = [0, 0, 0]
+        tong = 0
         
-        if ban == "hu":
+        if ban == "hu" or game == "hit-hu":
             raw_response = safe_json(API_HIT_HU)
             if not raw_response: return None
             raw = raw_response.get("data", raw_response) if isinstance(raw_response, dict) else raw_response
             
             phien_hien_tai = str(raw.get("phien_hien_tai", "")).replace("#", "").strip()
-            phien = str(int(phien_hien_tai) - 1) if phien_hien_tai.isdigit() else "---"
+            phien = phien_hien_tai if phien_hien_tai else "---"
             ket = None  # API hũ không có kết quả phiên trước
             phien_tiep_theo = str(raw.get("phien_tiep_theo") or phien_hien_tai or "---").replace("#", "")
             
@@ -1168,14 +1188,21 @@ def predict(game, ban="md5"):
                 phien_tiep_theo = str(int(phien) + 1) if phien and phien != "---" else "---"
                 api_du = normalize(raw.get("Du_doan") or raw.get("du_doan"))
                 raw_conf = raw.get("Do_tin_cay") or raw.get("do_tin_cay")
+                
+                # Cố gắng lấy xúc xắc
+                x1 = raw.get("Xuc_xac_1") or raw.get("xuc_xac_1", 0)
+                x2 = raw.get("Xuc_xac_2") or raw.get("xuc_xac_2", 0)
+                x3 = raw.get("Xuc_xac_3") or raw.get("xuc_xac_3", 0)
+                xuc_xac = [x1, x2, x3]
+                tong = raw.get("Tong") or raw.get("tong", 0)
 
         # Lưu kết quả NGAY từ API
         if ket and ket in ["Tài", "Xỉu"]:
-            update_prediction_results("hit", phien, ket)
+            update_prediction_results(game, phien, ket)
             if not h or h[-1] != ket:
                 h.append(ket)
                 save_history()
-                analyze_and_save_cau_patterns(list(h), "hit")
+                analyze_and_save_cau_patterns(list(h), game)
 
         # Parse confidence
         try:
@@ -1188,30 +1215,33 @@ def predict(game, ban="md5"):
             api_conf = None
 
         # Luôn truyền API prediction vào analyze
-        du, conf = analyze(list(h), "hit", api_prediction=api_du)
+        du, conf = analyze(list(h), game, api_prediction=api_du)
         
         if api_conf is not None:
             conf = api_conf
             
-        record_prediction("hit", phien_tiep_theo, du, conf)
+        record_prediction(game, phien_tiep_theo, du, conf)
 
         # Response chung cho HitClub, nhưng thêm dữ liệu riêng cho bàn Hũ
         response = {
-            "game": "HitClub",
+            "game": "HitClub Hũ" if game == "hit-hu" else "HitClub",
             "phien": phien,
             "phien_du_doan": phien_tiep_theo,
             "ket_qua": ket or "Đang chờ...",
+            "xuc_xac": xuc_xac,
+            "tong_xuc_xac": tong,
             "du_doan": du,
             "do_tin_cay": conf,
             "ban": ban,
-            "accuracy": f"{STATS['hit']['correct']}/{STATS['hit']['total']}" if STATS['hit']['total'] > 0 else "0/0",
-            "history": get_formatted_history("hit")
+            "accuracy": f"{STATS[game]['correct']}/{STATS[game]['total']}" if STATS[game]['total'] > 0 else "0/0",
+            "history": get_formatted_history(game)
         }
         
         # Thêm dữ liệu chi tiết cho bàn Hũ
-        if ban == "hu":
+        if ban == "hu" or game == "hit-hu":
             response.update({
                 "loai_cau": loai_cau,
+                "pattern": pattern_16,
                 "pattern_16": pattern_16,
                 "cuoc_tai": cuoc_tai,
                 "cuoc_xiu": cuoc_xiu,
@@ -1269,13 +1299,13 @@ def predict(game, ban="md5"):
             "history": get_formatted_history("789")
         }
 
-    if game == "68gb":
+    if game in ("68gb", "68gb-do"):
         # API mới trả về {"data": [...]} - lọc lấy bàn xanh "key": "banxanh"
         raw_all = safe_json(API_68GB)
         raw = None
         
         target_key = "banxanh"
-        if ban == "do": target_key = "bando"
+        if ban == "do" or game == "68gb-do": target_key = "bando"
 
         if raw_all:
             data_list = raw_all.get("data", [])
@@ -1289,17 +1319,17 @@ def predict(game, ban="md5"):
                 raw = raw_all
         if not raw:
             # Fallback: Dự đoán từ lịch sử nội bộ nếu API lỗi
-            du, conf = analyze(list(HIST["68gb"]), "68gb")
+            du, conf = analyze(list(h), game)
             
             # Tạo phiên giả lập để giao diện không bị treo
             fake_phien = "---"
-            if PREDICTION_HISTORY["68gb"]:
-                last_rec = PREDICTION_HISTORY["68gb"][-1]
+            if PREDICTION_HISTORY[game]:
+                last_rec = PREDICTION_HISTORY[game][-1]
                 if last_rec.get("session") and str(last_rec.get("session")).isdigit():
                     fake_phien = str(int(last_rec["session"]) - 1)
             
             return {
-                "game": "68 Game Bài",
+                "game": "68 GB Đỏ" if is_ban_do else "68 GB Xanh",
                 "phien": fake_phien if fake_phien != "---" else str(int(time.time())),
                 "phien_du_doan": "---",
                 "ket_qua": "Mất kết nối",
@@ -1307,17 +1337,23 @@ def predict(game, ban="md5"):
                 "tong_xuc_xac": 0,
                 "du_doan": du,
                 "do_tin_cay": conf,
-                "accuracy": f"{STATS['68gb']['correct']}/{STATS['68gb']['total']}" if STATS['68gb']['total'] > 0 else "0/0",
-                "history": get_formatted_history("68gb")
+                "accuracy": f"{STATS[game]['correct']}/{STATS[game]['total']}" if STATS[game]['total'] > 0 else "0/0",
+                "history": get_formatted_history(game)
             }
             
         # API 68GB: "phien" = phiên đang dự đoán (tiếp theo), "du_doan" = kết quả dự đoán
         # Phiên hiện tại = phien - 1
         phien_du_doan = str(raw.get("phien") or "---")
-        try:
-            phien_hien_tai = str(int(phien_du_doan) - 1) if phien_du_doan.isdigit() else "---"
-        except:
-            phien_hien_tai = "---"
+        
+        if "phien_hien_tai" in raw:
+            phien_hien_tai = str(raw.get("phien_hien_tai"))
+        elif "Phien" in raw:
+            phien_hien_tai = str(raw.get("Phien"))
+        else:
+            try:
+                phien_hien_tai = str(int(phien_du_doan) - 1) if phien_du_doan.isdigit() else "---"
+            except:
+                phien_hien_tai = "---"
 
         phien = phien_hien_tai  # phiên hiện tại để lưu lịch sử
         phien_tiep_theo = phien_du_doan  # phiên đang dự đoán
@@ -1325,11 +1361,11 @@ def predict(game, ban="md5"):
         ket = normalize(raw.get("ket_qua") or raw.get("Ket_qua"))
 
         if ket and ket in ["Tài", "Xỉu"]:
-            update_prediction_results("68gb", phien, ket)
+            update_prediction_results(game, phien, ket)
             if not h or h[-1] != ket:
                 h.append(ket)
                 save_history()
-                analyze_and_save_cau_patterns(list(h), "68gb")
+                analyze_and_save_cau_patterns(list(h), game)
 
         api_du = normalize(raw.get("du_doan") or raw.get("Du_doan") or raw.get("predict"))
         
@@ -1342,10 +1378,10 @@ def predict(game, ban="md5"):
                 api_conf = conf_val / 100 if conf_val > 1 else conf_val
         except: pass
 
-        du, conf = analyze(list(h), "68gb", api_prediction=api_du)
+        du, conf = analyze(list(h), game, api_prediction=api_du)
         if api_conf is not None: conf = api_conf
         
-        record_prediction("68gb", phien_tiep_theo, du, conf)
+        record_prediction(game, phien_tiep_theo, du, conf)
 
         xuc_xac_raw = raw.get("xuc_xac")
         if isinstance(xuc_xac_raw, list) and len(xuc_xac_raw) == 3:
@@ -1361,7 +1397,7 @@ def predict(game, ban="md5"):
             tong = sum(int(x) for x in xuc_xac if x is not None)
 
         return {
-            "game": "68 Game Bài",
+            "game": "68 GB Đỏ" if is_ban_do else "68 GB Xanh",
             "phien": phien,
             "phien_du_doan": phien_tiep_theo,
             "ket_qua": ket or "Đang chờ...",
@@ -1369,8 +1405,8 @@ def predict(game, ban="md5"):
             "tong_xuc_xac": tong if tong is not None else 0,
             "du_doan": du,
             "do_tin_cay": conf,
-            "accuracy": f"{STATS['68gb']['correct']}/{STATS['68gb']['total']}" if STATS['68gb']['total'] > 0 else "0/0",
-            "history": get_formatted_history("68gb")
+            "accuracy": f"{STATS[game]['correct']}/{STATS[game]['total']}" if STATS[game]['total'] > 0 else "0/0",
+            "history": get_formatted_history(game)
         }
 
     if game == "lc79":

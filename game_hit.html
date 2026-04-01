@@ -262,16 +262,17 @@ function switchBan(ban) {
 async function refresh() {
     try {
         if (currentBan === 'md5') {
-            // Gọi qua backend Flask
+            // Gọi qua backend Flask cho bàn MD5
             let r = await apiFetch("/api/predict/hit");
             let j = await r.json();
             let data = (j && j.result) ? j.result : j;
             if (data && typeof data === 'object') updateHitMD5(data);
         } else {
-            // Gọi trực tiếp API hũ
-            let r = await fetch(API_HIT_HU);
-            let data = await r.json();
-            if (data) updateHitHu(data);
+            // Gọi qua backend Flask cho bàn Hũ (không gọi trực tiếp API)
+            let r = await apiFetch("/api/predict/hit-hu");
+            let j = await r.json();
+            let data = (j && j.result) ? j.result : j;
+            if (data && typeof data === 'object') updateHitHu(data);
         }
     } catch(e) {
         console.error('[refresh error]', e);
@@ -343,7 +344,7 @@ function updateHitHu(data) {
                 let col = c.toUpperCase() === 'T' ? '#00ff00' : '#ff4444';
                 html += `<span style="color:${col};font-weight:bold">${c.toUpperCase()==='T'?'T':'X'}</span>`;
             }
-            html += `</div><div style="padding:4px 8px;color:#aaa;font-size:12px">Phiếu Tài: <b style="color:#00ff00">${data.phieu_Tai}</b> | Phiếu Xỉu: <b style="color:#ff4444">${data.phieu_Xiu}</b></div>`;
+            html += `</div><div style="padding:4px 8px;color:#aaa;font-size:12px">Phiếu Tài: <b style="color:#00ff00">${data.phieu_tai}</b> | Phiếu Xỉu: <b style="color:#ff4444">${data.phieu_xiu}</b></div>`;
             histEl.innerHTML = html;
         }
     }

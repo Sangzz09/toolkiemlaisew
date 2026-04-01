@@ -24,68 +24,22 @@ async def log_all_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
     Xử lý tin nhắn không phải lệnh.
     - Chỉ xử lý tin nhắn xác nhận chuyển khoản "TÔI ĐÃ CHUYỂN KHOẢN" trong nhóm
     - Bỏ qua các tin nhắn thường khác (không trả lời)
+    - Hiện tại, logic này sẽ bỏ qua tất cả tin nhắn thường.
     """
     if update.message and update.message.text:
         user = update.effective_user
         msg_text = update.message.text
         is_group = update.message.chat.type in ["group", "supergroup"]
         
-        print(f"[DEBUG] log_all_messages - Nhóm: {is_group}, Text: {msg_text[:40]}")
-
         # Check if user is banned from Telegram bot
         db = load_db()
         if user.id in db.get("blocked_telegram_ids", []):
-            print(f"[DEBUG] User bị chặn: {user.id}")
             return
 
-        # Chỉ xử lý xác nhận chuyển khoản từ nhóm
-        if msg_text and "TÔI ĐÃ CHUYỂN KHOẢN" in msg_text.upper() and is_group:
-            print(f"[DEBUG] Phát hiện xác nhận chuyển khoản")
-            user_id = user.id
-            user_telegram = user.username or user.first_name
-            user_fullname = user.first_name + (f" {user.last_name}"
-                                               if user.last_name else "")
-
-            found_deposit = None
-            deposit_key_to_remove = None
-            for deposit_id, deposit in pending_deposits.items():
-                if deposit["user_id"] == user_id:
-                    found_deposit = deposit
-                    deposit_key_to_remove = deposit_id
-                    break
-
-            if found_deposit:
-                admin_msg = (
-                    f"✅ XÁC NHẬN CHUYỂN KHOẢN (Telegram - Nhóm)\n\n"
-                    f"👤 Tên: {user_fullname}\n"
-                    f"📱 Telegram: @{user_telegram} (ID: {user_id})\n"
-                    f"🎮 Tài khoản: {found_deposit['username']}\n"
-                    f"💵 Số tiền: {found_deposit['amount']:,}đ\n\n"
-                    f"💬 User xác nhận chuyển khoản trong nhóm!\n\n"
-                    f"Duyệt: /duyet {found_deposit['username']}")
-
-                try:
-                    await context.bot.send_message(chat_id=ADMIN_ID,
-                                                   text=admin_msg)
-                    await update.message.reply_text(
-                        f"✅ Đã nhận xác nhận!\n\n"
-                        f"📱 Admin sẽ kiểm tra và duyệt nạp tiền cho bạn trong giây lát.\n\n"
-                        f"⏳ Vui lòng đợi...")
-                    # Remove the deposit after confirmation to avoid duplicate processing
-                    if deposit_key_to_remove:
-                        del pending_deposits[deposit_key_to_remove]
-                    print(f"[DEBUG] ✅ Xác nhận thanh toán được xử lý")
-                except Exception as e:
-                    print(f"❌ Lỗi gửi thông báo admin: {e}")
-            else:
-                print(f"[DEBUG] Không tìm thấy yêu cầu nạp tiền cho user {user_id}")
-                # Không trả lời khi không tìm thấy yêu cầu nạp
-                return
-        else:
-            # Bỏ qua các tin nhắn thường - không trả lời
-            # Chỉ log để debug
-            print(f"[DEBUG] Bỏ qua tin nhắn thường từ {'nhóm' if is_group else 'DM'}: {msg_text[:40]}")
-            return
+        # Bỏ qua các tin nhắn thường - không trả lời
+        # Chỉ log để debug
+        print(f"[DEBUG] Bỏ qua tin nhắn thường từ {'nhóm' if is_group else 'DM'}: {msg_text[:40]}")
+        return
     elif update.edited_message:
         print(f"[DEBUG] ✏️ Edited message received")
     else:
@@ -94,10 +48,10 @@ async def log_all_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        user_id  = update.effective_user.id
-        tg_name  = update.effective_user.username or update.effective_user.first_name
-        fullname = update.effective_user.full_name or tg_name
-        print(f"📥 /start từ: {tg_name} (ID: {user_id})")
+        user = update.effective_user
+        is_group = update.message.chat.type in ["group", "supergroup"]
+        user_id = user.id
+        print(f"📥 /start từ: {user.username or user.first_name} (ID: {user_id})")
 
         now_str = vn_now_str()
 
@@ -133,57 +87,19 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 InlineKeyboardButton("🌐 Truy cập Tool", url="https://toolkiemlaisew.site"),
                 InlineKeyboardButton("📊 Thống kê", callback_data="admin_stats")
             ]]
-        else:
-            # ── USER THƯỜNG ────────────────────────────────────
-            # Lấy thông tin key của user (nếu có tài khoản web)
-            key_info = ""
-            try:
-                db = load_db()
-                # Tìm user web có cùng telegram username
-                for uname, udata in db.get("users", {}).items():
-                    active = db["active"].get(uname)
-                    if active:
-                        exp = active.get("expiresAt")
-                        if exp is None or exp > time.time():
-                            key_info = f"\n✅ Key đang active: {key_expires_str(exp)}"
-                            break
-            except Exception:
-                pass
-
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await update.message.reply_text(msg, reply_markup=reply_markup)
+        elif is_group:
+            # ── USER THƯỜNG TRONG NHÓM ─────────────────────────
             msg = (
-                f"╔══════════════════════════╗\n"
-                f"║   🤖 TOOL AI KIẾM LÃI   ║\n"
-                f"╚══════════════════════════╝\n\n"
-                f"👋 Xin chào, {fullname}!\n"
-                f"🕐 {now_str}\n"
-                f"{key_info}\n\n"
-                f"🎯 VỀ TOOL\n"
-                f"  • AI dự đoán Tài/Xỉu chính xác cao\n"
-                f"  • Hỗ trợ: SunWin, HitClub, B52, Luck8\n"
-                f"            789Club, 68GB, LC79, Sexy\n"
-                f"  • Cập nhật kết quả real-time\n\n"
-                f"💎 BẢNG GIÁ KEY\n"
-                f"  🥉 1 ngày  —  liên hệ admin\n"
-                f"  🥈 1 tuần  —  liên hệ admin\n"
-                f"  🥇 1 tháng —  liên hệ admin\n"
-                f"  👑 Vĩnh viễn — liên hệ admin\n\n"
-                f"📌 HƯỚNG DẪN\n"
-                f"  1️⃣ Đăng ký tài khoản trên web\n"
-                f"  2️⃣ Nạp tiền → mua key\n"
-                f"  3️⃣ Vào game → tool tự dự đoán\n\n"
-                f"💬 Hỗ trợ: @sewdangcap"
+                f"👋 Chào mừng bạn đến với bot của {SHOP_NAME}!\n\n"
+                f"Sử dụng lệnh /naptien để xem hướng dẫn nạp tiền."
             )
-            keyboard = [[
-                InlineKeyboardButton("🌐 Vào Tool ngay", url="https://toolkiemlaisew.site"),
-                InlineKeyboardButton("💬 Liên hệ Admin", url="https://t.me/sewdangcap")
-            ],[
-                InlineKeyboardButton("💰 Nạp tiền", url="https://toolkiemlaisew.site/deposit"),
-                InlineKeyboardButton("🔑 Mua Key", url="https://toolkiemlaisew.site/buy-key")
-            ]]
+            await update.message.reply_text(msg)
+        else:
+            # ── USER THƯỜNG TRONG CHAT RIÊNG ───────────────────
+            await update.message.reply_text("⛔ Bot chỉ hoạt động trong nhóm. Vui lòng thêm bot vào một nhóm để sử dụng.")
 
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await update.message.reply_text(msg, reply_markup=reply_markup)
-        print(f"OK /start → {tg_name}")
     except Exception as e:
         print(f"ERROR cmd_start: {e}")
         import traceback
@@ -192,6 +108,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
+    is_group = update.message.chat.type in ["group", "supergroup"]
     if user_id == ADMIN_ID:
         await update.message.reply_text(
             "📖 LỆNH ADMIN:\n\n"
@@ -213,23 +130,23 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "         sicbo | 789 | 68gb | 68gb-do | lc79 | sexy\n\n"
             "━━━━━━━━━━━━━━━━━━━━\n"
             "👤 QUẢN LÝ USER:\n"
-            "/tong - Thống kê tổng quan\n"
-            "/doanhthu - Xem doanh thu\n"
-            "/band <user> - Khóa web login\n"
-            "/unband <user> - Mở khóa web\n"
-            "/ban_tg <id> - Chặn Telegram\n"
-            "/unban_tg <id> - Bỏ chặn Telegram\n"
-            "/xoa <user> - Xóa tài khoản\n"
-            "/lichsu <game> - Lịch sử dự đoán\n"
+            "/tong - Thống kê tổng quan\n" +
+            "/doanhthu - Xem doanh thu\n" +
+            "/band <user> - Khóa web login\n" +
+            "/unband <user> - Mở khóa web\n" +
+            "/ban_tg <id> - Chặn Telegram\n" +
+            "/unban_tg <id> - Bỏ chặn Telegram\n" +
+            "/xoa <user> - Xóa tài khoản\n" +
+            "/lichsu <game> - Lịch sử dự đoán\n" +
             "/xuatdata - Xuất toàn bộ data")
+    elif is_group:
+        await update.message.reply_text(
+            "📖 <b>HƯỚNG DẪN SỬ DỤNG</b>\n\n"
+            "Gõ lệnh /naptien để nhận thông tin và hướng dẫn nạp tiền vào tài khoản web của bạn.",
+            parse_mode='HTML')
     else:
         await update.message.reply_text(
-            "📖 HƯỚNG DẪN SỬ DỤNG:\n\n"
-            "1️⃣ Gửi lệnh nạp tiền:\n   /nap <tên_tài_khoản> <số_tiền>\n   Ví dụ: /nap Minhsang 100000\n\n"
-            "2️⃣ Chuyển khoản theo thông tin:\n   - Ngân hàng: MB Bank\n   - STK: 0886027767\n   - Tên: TRAN MINH SANG\n   - Nội dung: NAP <tên_tài_khoản>\n\n"
-            "3️⃣ Sau khi chuyển khoản xong, nhắn:\n   TÔI ĐÃ CHUYỂN KHOẢN\n\n"
-            "4️⃣ Admin sẽ duyệt và cộng tiền\n\n"
-            "💬 Hỗ trợ: @minhsangdangcap")
+            "⛔ Bot chỉ hoạt động trong nhóm. Vui lòng thêm bot vào một nhóm để sử dụng.")
 
 
 async def callback_approve_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -297,152 +214,27 @@ async def callback_approve_deposit(update: Update, context: ContextTypes.DEFAULT
     print(f"[DEBUG] ✅ Đã xóa pending_deposits[{short_id}]")
 
 
-
-async def callback_confirm_transfer(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Xử lý khi user click button xác nhận chuyển khoản"""
-    query = update.callback_query
-    print(f"[DEBUG] callback_confirm_transfer được gọi! callback_data: {query.data}")
-    await query.answer()
-    
-    # Lấy deposit_id từ callback_data
-    deposit_id = query.data.replace("confirm_transfer_", "")
-    print(f"[DEBUG] deposit_id: {deposit_id}")
-    print(f"[DEBUG] pending_deposits keys: {list(pending_deposits.keys())}")
-    
-    if deposit_id not in pending_deposits:
-        print(f"[DEBUG] ❌ deposit_id không tìm thấy trong pending_deposits!")
-        await query.edit_message_text("❌ Yêu cầu nạp tiền không còn hiệu lực!")
-        return
-    
-    deposit = pending_deposits[deposit_id]
-    user_id = deposit["user_id"]
-    user_telegram = deposit["user_telegram"]
-    user_fullname = deposit["user_fullname"]
-    username = deposit["username"]
-    amount = deposit["amount"]
-    
-    print(f"[DEBUG] Gửi message cho admin. ADMIN_ID: {ADMIN_ID}")
-    
-    # Gửi thông báo admin kèm button duyệt
-    admin_msg = (
-        f"✅ XÁC NHẬN CHUYỂN KHOẢN (Telegram)\n\n"
-        f"👤 Tên: {user_fullname}\n"
-        f"📱 Telegram: @{user_telegram} (ID: {user_id})\n"
-        f"🎮 Tài khoản: {username}\n"
-        f"💵 Số tiền: {amount:,}đ\n\n"
-        f"💬 User đã xác nhận chuyển khoản!")
-    
-    # Tạo short ID để avoid callback_data quá dài (Telegram limit 64 bytes)
-    config.deposit_counter += 1
-    short_id = f"d{config.deposit_counter}"
-    pending_deposits[short_id] = deposit
-    # Xóa cái deposit_id cũ để tránh duplicate
-    del pending_deposits[deposit_id]
-    print(f"[DEBUG] Tạo short_id {short_id} từ {deposit_id}")
-    
-    print(f"[DEBUG] Tạo button với callback_data: approve_{short_id}")
-    admin_keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("✅ Duyệt nạp tiền", callback_data=f"approve_{short_id}")]
-    ])
-    
-    try:
-        print(f"[DEBUG] Đang gửi message tới admin...")
-        await context.bot.send_message(chat_id=ADMIN_ID, text=admin_msg, reply_markup=admin_keyboard)
-        print(f"[DEBUG] ✅ Message gửi thành công!")
-        
-        await query.edit_message_text(
-            f"✅ Đã nhận xác nhận!\n\n"
-            f"📱 Admin sẽ kiểm tra và duyệt nạp tiền cho bạn trong giây lát.\n\n"
-            f"⏳ Vui lòng đợi...")
-        # Không xóa pending_deposits ở đây - chỉ xóa sau khi admin duyệt
-    except Exception as e:
-        print(f"[ERROR] Lỗi gửi message: {e}")
-        import traceback
-        traceback.print_exc()
-        await query.edit_message_text(f"❌ Lỗi: {str(e)}")
-
-
-async def cmd_nap(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    user_telegram = update.effective_user.username or update.effective_user.first_name
-    user_fullname = update.effective_user.first_name + (
-        f" {update.effective_user.last_name}"
-        if update.effective_user.last_name else "")
-
-    if len(context.args) < 2:
-        await update.message.reply_text(
-            "❌ Sai cú pháp!\n\nĐúng: /nap <tên_tài_khoản> <số_tiền>\nVí dụ: /nap Minhsang 100000")
+async def cmd_naptien(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Gửi thông tin nạp tiền vào nhóm."""
+    if update.message.chat.type not in ["group", "supergroup"]:
+        await update.message.reply_text("Lệnh này chỉ hoạt động trong nhóm. Vui lòng sử dụng trong nhóm chat.")
         return
 
-    username = context.args[0]
-    try:
-        amount = int(context.args[1])
-        if amount <= 0:
-            raise ValueError()
-    except:
-        await update.message.reply_text("❌ Số tiền không hợp lệ!")
-        return
+    from config import SHOP_NAME
+    from sepay_webhook import BANK_ACCOUNT, BANK_OWNER
 
-    db = load_db()
-    if username not in db["users"]:
-        await update.message.reply_text(
-            f"❌ Tài khoản '{username}' không tồn tại!")
-        return
-
-    # Check if user is banned from Telegram bot
-    if user_id in db.get("blocked_telegram_ids", []):
-        await update.message.reply_text(
-            "⛔ Tài khoản Telegram của bạn đã bị chặn bot.")
-        return
-
-    deposit_id = f"{user_id}_{int(time.time())}"
-    pending_deposits[deposit_id] = {
-        "user_id": user_id,
-        "user_telegram": user_telegram,
-        "user_fullname": user_fullname,
-        "username": username,
-        "amount": amount,
-        "time": time.time()
-    }
-
-    # Debug log
-    print(f"💰 Tạo yêu cầu nạp tiền mới:")
-    print(f"  - Deposit ID: {deposit_id}")
-    print(f"  - Username: {username}")
-    print(f"  - Amount: {amount}")
-    print(f"  - Pending deposits: {len(pending_deposits)} yêu cầu")
-
-    admin_msg = (f"💰 YÊU CẦU NẠP TIỀN MỚI (Telegram)\n\n"
-                 f"👤 Tên: {user_fullname}\n"
-                 f"📱 Telegram: @{user_telegram} (ID: {user_id})\n"
-                 f"🎮 Tài khoản game: {username}\n"
-                 f"💵 Số tiền: {amount:,}đ\n"
-                 f"🔑 ID: {deposit_id}\n\n"
-                 f"⏳ Đang chờ user chuyển khoản...\n\n"
-                 f"Duyệt: /duyet {username}")
-
-    try:
-        await context.bot.send_message(chat_id=ADMIN_ID, text=admin_msg)
-        
-        # Gửi thông tin và button xác nhận cho user
-        msg = (f"✅ Đã gửi yêu cầu nạp tiền!\n\n"
-               f"👤 Tài khoản: {username}\n"
-               f"💵 Số tiền: {amount:,}đ\n\n"
-               f"📋 THÔNG TIN CHUYỂN KHOẢN:\n"
-               f"🏦 Ngân hàng: MB Bank\n"
-               f"💳 STK: 0886027767\n"
-               f"👤 Tên: TRAN MINH SANG\n"
-               f"📝 Nội dung: NAP {username}\n\n"
-               f"⏳ Sau khi chuyển khoản, bấm nút bên dưới:")
-        
-        # Tạo inline keyboard button
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("✅ Xác nhận đã chuyển khoản", callback_data=f"confirm_transfer_{deposit_id}")]
-        ])
-        
-        await update.message.reply_text(msg, reply_markup=keyboard)
-    except Exception as e:
-        await update.message.reply_text(f"❌ Lỗi gửi thông báo: {str(e)}")
+    msg = (
+        f"✅ <b>HƯỚNG DẪN NẠP TIỀN - {SHOP_NAME}</b>\n\n"
+        f"Để nạp tiền vào tài khoản, vui lòng chuyển khoản với nội dung sau:\n\n"
+        f"📝 <b>Nội dung:</b> <code>NAP [Tên tài khoản của bạn]</code>\n"
+        f"<i>(Ví dụ: NAP minhsang)</i>\n\n"
+        f"📋 <b>THÔNG TIN CHUYỂN KHOẢN:</b>\n"
+        f"🏦 Ngân hàng: <b>MB Bank</b>\n"
+        f"💳 STK: <code>{BANK_ACCOUNT}</code>\n"
+        f"👤 Tên: <b>{BANK_OWNER}</b>\n\n"
+        f"Sau khi chuyển khoản, hệ thống sẽ tự động cộng tiền nếu bạn ghi đúng tên tài khoản trong nội dung."
+    )
+    await update.message.reply_text(msg, parse_mode='HTML')
 
 
 async def cmd_duyet(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1661,22 +1453,24 @@ async def cmd_lichsu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     game = context.args[0].lower()
-
-    if game not in ["sun", "hit", "b52", "sum", "luck8", "sicbo", "789", "68gb", "lc79"]:
+    
+    if game not in ["sun", "hit", "hit-hu", "b52", "sum", "luck8", "sicbo", "789", "68gb", "68gb-do", "lc79"]:
         await update.message.reply_text(
             "❌ Game không hợp lệ!\n\n"
-            "Game có sẵn: sun, hit, b52, sum, luck8, sicbo, 789, 68gb, lc79")
+            "Game có sẵn: sun, hit, hit-hu, b52, sum, luck8, sicbo, 789, 68gb, 68gb-do, lc79")
         return
 
     game_names = {
         "sun": "SunWin",
         "hit": "HitClub",
+        "hit-hu": "HitClub Hũ",
         "b52": "B52",
         "sum": "SumClub",
         "luck8": "Luck8",
         "sicbo": "Sicbo SunWin",
         "789": "789Club",
-        "68gb": "68 Game Bài",
+        "68gb": "68 GB Xanh",
+        "68gb-do": "68 GB Đỏ",
         "lc79": "LC79"
     }
     game_name = game_names[game]
@@ -1687,6 +1481,8 @@ async def cmd_lichsu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         api_data = safe_json(API_SUN, timeout=5)
     elif game == "hit":
         api_data = safe_json(API_HIT)
+    elif game == "hit-hu":
+        api_data = safe_json(API_HIT_HU)
     elif game == "sum":
         api_data = safe_json(API_SUM)
     elif game == "b52":
@@ -1698,7 +1494,17 @@ async def cmd_lichsu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif game == "789":
         api_data = safe_json(API_789)
     elif game == "68gb":
-        api_data = safe_json(API_68GB)
+        api_data = safe_json(API_68GB_XANH)
+    elif game == "68gb-do":
+        raw_all = safe_json(API_68GB)
+        api_data = None
+        if raw_all:
+            for item in raw_all.get("data", []):
+                if item.get("key") == "bando":
+                    api_data = item
+                    break
+            if not api_data and raw_all.get("key") == "bando":
+                api_data = raw_all
     elif game == "lc79":
         api_data = safe_json(API_LC79)
 
@@ -1720,6 +1526,10 @@ async def cmd_lichsu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             current_session = api_data.get("phien", "---")
             current_result = normalize(api_data.get("ket_qua"))
+    elif game == "hit-hu":
+        phien_hien_tai = str(api_data.get("phien_hien_tai", "")).replace("#", "")
+        current_session = phien_hien_tai if phien_hien_tai else "---"
+        current_result = "⏳"
     elif game == "sum":
         current_session = api_data.get("Phien") or api_data.get("phien_hien_tai", "---")
         current_result = normalize(api_data.get("Ket_qua"))
@@ -1733,8 +1543,19 @@ async def cmd_lichsu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         current_session = api_data.get("phien", "---")
         current_result = normalize(api_data.get("ket_qua"))
     elif game == "68gb":
-        current_session = api_data.get("Phien") or api_data.get("phien", "---")
+        current_session = str(api_data.get("phien_hien_tai") or api_data.get("Phien") or api_data.get("phien", "---"))
         current_result = normalize(api_data.get("Ket_qua") or api_data.get("ket_qua"))
+    elif game == "68gb-do":
+        if api_data:
+            phien_du_doan = str(api_data.get("phien") or "---")
+            try:
+                current_session = str(int(phien_du_doan) - 1) if phien_du_doan.isdigit() else "---"
+            except:
+                current_session = "---"
+            current_result = normalize(api_data.get("Ket_qua") or api_data.get("ket_qua"))
+        else:
+            current_session = "---"
+            current_result = "Mất kết nối"
 
     # Lấy thống kê từ PREDICTION_HISTORY
     history = list(PREDICTION_HISTORY[game])
@@ -1882,7 +1703,7 @@ async def start_bot_async():
         bot_app.add_handler(CommandHandler("start", cmd_start))
         print("✅ Đã đăng ký handler /start")
         bot_app.add_handler(CommandHandler("help", cmd_help))
-        bot_app.add_handler(CommandHandler("nap", cmd_nap))
+        bot_app.add_handler(CommandHandler("naptien", cmd_naptien))
         bot_app.add_handler(CommandHandler("duyet", cmd_duyet))
         bot_app.add_handler(CommandHandler("menu", cmd_menu))
         bot_app.add_handler(CommandHandler("key", cmd_key))
@@ -1920,8 +1741,7 @@ async def start_bot_async():
             print("⚠️ job_queue không khả dụng - bỏ qua auto backup (cài 'pip install python-telegram-bot[job-queue]' để bật)")
 
         # Thêm callback handler cho button xác nhận chuyển khoản và duyệt đơn
-        bot_app.add_handler(CallbackQueryHandler(callback_confirm_transfer, pattern="^confirm_transfer_"))
-        bot_app.add_handler(CallbackQueryHandler(callback_approve_deposit, pattern="^approve_"))
+        # bot_app.add_handler(CallbackQueryHandler(callback_approve_deposit, pattern="^approve_")) # Đã loại bỏ
 
         # Thêm message handler SAU command handlers với ưu tiên thấp hơn
         bot_app.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND,
