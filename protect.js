@@ -69,9 +69,9 @@ function _nuke(){
   document.write('<style>*{margin:0;padding:0;background:#0a1628;box-sizing:border-box}</style>'+
     '<div style="display:flex;height:100vh;align-items:center;justify-content:center;'+
     'flex-direction:column;gap:16px;font-family:Arial,sans-serif;color:#fff;text-align:center;padding:20px">'+
-    '<div style="font-size:64px">🛑</div>'+
-    '<div style="font-size:22px;font-weight:bold;color:#ff4444">Phát hiện công cụ tấn công!</div>'+
-    '<div style="font-size:14px;color:#aaa;max-width:340px">Hành động của bạn đã bị ghi lại và báo cáo admin.<br>Phiên đã bị hủy.</div>'+
+    '<div style="font-size:64px">�</div>'+
+    '<div style="font-size:22px;font-weight:bold;color:#ff4444">Bảo mật: Hoạt động trái phép phát hiện</div>'+
+    '<div style="font-size:14px;color:#aaa;max-width:340px">Hành động của bạn đã được ghi lại và báo cáo với quản trị viên. Phiên của bạn đã được hủy bỏ để bảo vệ tài khoản.</div>'+
     '<button onclick="location.href=\'/logout\'" '+
     'style="margin-top:12px;padding:12px 28px;background:#00e6b4;border:none;border-radius:10px;'+
     'color:#0a1628;font-size:15px;font-weight:bold;cursor:pointer">Đăng nhập lại</button></div>');
@@ -84,9 +84,9 @@ function _nuke(){
 (function lockConsole(){
   // Hiện cảnh báo 1 lần
   try{
-    _nat.warn('%c CÓ TRÌNH ĐÉO MÀ LẤY','color:#f00;font-size:28px;font-weight:900;background:#000;padding:8px 16px');
-    _nat.warn('%c Mua key: t.me/sewdangcap','color:#f80;font-size:15px;font-weight:bold');
-    _nat.warn('%c MOI CODE PASTE/CHAY O DAY DEU BI CHAN & BAO CAO ADMIN','color:#ff4444;font-size:13px');
+    _nat.warn('%c ⚠️ BẢO MẢN LẠP TRÌNH','color:#f00;font-size:28px;font-weight:900;background:#000;padding:8px 16px');
+    _nat.warn('%c Lợi dụng tính năng lập trình của trình duyệt có thể vi phạm điều khoản dịch vụ','color:#f80;font-size:15px;font-weight:bold');
+    _nat.warn('%c Bất kỳ mã nào được thực thi trong đây sẽ bị chặn và báo cáo tới quản trị viên','color:#ff4444;font-size:13px');
   }catch(e){}
 
   var _noop=function(){return undefined;};

@@ -90,7 +90,11 @@ body::before{content:'';position:absolute;top:0;left:0;width:100%;height:100%;ba
 .luck8-history::-webkit-scrollbar-track{background:rgba(20,40,70,0.3);border-radius:6px}
 .luck8-history::-webkit-scrollbar-thumb{background:rgba(79,195,247,0.5);border-radius:6px}
 .luck8-history::-webkit-scrollbar-thumb:hover{background:rgba(79,195,247,0.7)}
-
+/* Tab chọn bàn */
+.ban-tabs{display:flex;gap:8px;justify-content:center;margin-bottom:14px}
+.ban-tab{flex:1;padding:10px 0;border-radius:10px;border:2px solid rgba(0,230,180,0.3);background:rgba(0,0,0,0.3);color:#aaa;font-weight:bold;font-size:14px;cursor:pointer;transition:all 0.25s;text-align:center}
+.ban-tab.active{background:linear-gradient(135deg,#00e6b4,#00b4d8);color:#0a1628;border-color:#00e6b4;box-shadow:0 4px 15px rgba(0,230,180,0.4)}
+.ban-tab:hover:not(.active){border-color:#00e6b4;color:#00e6b4}
 /* New Robot UI */
 .draggable-box{position:fixed;top:15px;left:15px;display:flex;align-items:center;gap:12px;z-index:9999;touch-action:none;user-select:none;-webkit-user-select:none;}
 .robot-container{width:150px;height:150px;animation:float 3s ease-in-out infinite;}
@@ -225,14 +229,30 @@ async function apiFetch(url) {
 // ──────────────────────────────────────────────────────────────────────────
 
 let gameCode='68gb';
+let currentBan='xanh'; // 'xanh' hoặc 'do'
 let lastSession=null;
 let lastPredictedSession=null;
 let lastPrediction=null;
 let isPredicting=false;
 
+// ── Chuyển bàn ────────────────────────────────────────────────────────────
+function switchBan(ban) {
+    currentBan = ban;
+    document.getElementById('tabXanh').classList.toggle('active', ban === 'xanh');
+    document.getElementById('tabDo').classList.toggle('active', ban === 'do');
+    // Reset UI
+    document.getElementById('session-info-text').textContent = 'Đang khởi động AI...';
+    document.getElementById('waiting-text').innerHTML = 'Đang chờ phiên tiếp theo...';
+    document.getElementById('confidence-box').style.display = 'none';
+    lastSession = null;
+    lastPredictedSession = null;
+    lastPrediction = null;
+    refresh();
+}
+
 async function refresh(){
 try{
-let r=await apiFetch("/api/predict/68gb");
+let r=await apiFetch("/api/predict/68gb?ban="+currentBan);
 let j=await r.json();
 let data = (j && j.result) ? j.result : (j && j.data) ? j.data : j;
 if(data && typeof data==='object'){
@@ -514,6 +534,14 @@ retina_detect:true
 <div class="header">
 <div class="game-title">🎲 68 Game Bài</div>
 <a href="/menu" class="back-btn">← Menu</a>
+</div>
+
+<!-- Tab chọn bàn -->
+<div class="wrapper" style="display:block;position:fixed;top:100px;left:50%;transform:translateX(-50%);z-index:100;max-width:400px;width:90%">
+<div class="ban-tabs">
+  <button class="ban-tab active" id="tabXanh" onclick="switchBan('xanh')">💚 Bàn Xanh</button>
+  <button class="ban-tab" id="tabDo" onclick="switchBan('do')">❤️ Bàn Đỏ</button>
+</div>
 </div>
 
 <div class="iframe-container" style="display:block"><iframe src="about:blank"></iframe></div>

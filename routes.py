@@ -99,6 +99,36 @@ def login():
 
 @bp.route("/logout")
 def logout():
+    username = session.get("username")
+    reason = request.args.get("reason", "")
+    
+    # Phát hiện F12/DevTools và gửi cảnh báo Telegram
+    if reason == "devtools":
+        try:
+            ip = (request.headers.get("CF-Connecting-IP")
+                  or request.headers.get("X-Forwarded-For", "").split(",")[0]
+                  or request.remote_addr or "unknown").strip()
+            ua = request.headers.get("User-Agent", "N/A")[:100]
+            t = time.strftime("%H:%M:%S %d/%m/%Y")
+            
+            msg = (
+                f"🔍 PHÁT HIỆN MỞ DEVTOOLS (F12)\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━\n"
+                f"👤 Tài khoản: {username or '(chưa đăng nhập)'}\n"
+                f"📡 IP: {ip}\n"
+                f"💻 UA: {ua}\n"
+                f"🕐 {t}\n\n"
+                f"👉 Ban web: /band {username}\n"
+                f"👉 Ban IP:  /banip {ip}"
+            )
+            requests.post(
+                f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+                json={"chat_id": ADMIN_ID, "text": msg},
+                timeout=4
+            )
+        except Exception as e:
+            print(f"[Telegram Alert Error] {e}")
+    
     session.clear()
     return redirect(url_for("main.login"))
 
@@ -277,7 +307,9 @@ def buy_key():
 
             success = f"""✅ Mua key thành công!<br><br>
             <div style="background:rgba(0,230,180,0.1);padding:15px;border-radius:12px;margin:15px 0;text-align:center;">
-                <div style="font-size:18px;font-weight:bold;color:#00e6b4;margin-bottom:10px;">🔑 Mã Key Của Bạn</div>
+                <div style="color:#00ff99;font-size:15px;margin-bottom:10px;">🎉 Hệ thống đã <b>tự động kích hoạt và cộng dồn</b> thời gian sử dụng vào tài khoản của bạn!</div>
+                <div style="color:#fff;font-size:15px;margin-bottom:15px;">⏳ Hạn sử dụng mới: <b style="color:#00e6b4">{vn_date_str(new_expires_at) if new_expires_at else "Vĩnh viễn"}</b></div>
+                <div style="font-size:18px;font-weight:bold;color:#00e6b4;margin-bottom:10px;">🔑 Mã Key Của Bạn (Lưu trữ nếu cần)</div>
                 <div style="display:flex;gap:10px;align-items:center;justify-content:center;">
                     <input type="text" id="keyCode" value="{new_key['code']}" readonly
                            style="padding:12px;background:rgba(0,0,0,0.3);border:1px solid rgba(0,230,180,0.3);
@@ -627,8 +659,8 @@ def enter_key(gcode):
 def api_predict(game):
     # --- KIỂM TRA ĐĂNG NHẬP ---
     if "username" not in session:
-        _alert_crack_attempt(None, request, game)
-        return jsonify({"ok": False, "error": "có trình đéo mà lấy 🖕 Mua key: t.me/sewdangcap"})
+        _alert_crack_attempt(None, request, game, "no_session")
+        return jsonify({"ok": False, "error": "Chưa đăng nhập. Vui lòng mua key tại t.me/sewdangcap"})
 
     username = session["username"]
     db = load_db()
@@ -636,8 +668,8 @@ def api_predict(game):
     # Kiểm tra có CSRF token không (gọi từ ngoài, không qua web)
     csrf_token = request.headers.get("X-CSRF-Token", "").strip()
     if not csrf_token:
-        _alert_crack_attempt(username, request, game)
-        return jsonify({"ok": False, "error": f"có trình đéo mà lấy 🖕 ({username}) Mua key: t.me/sewdangcap"})
+        _alert_crack_attempt(username, request, game, "missing_token")
+        return jsonify({"ok": False, "error": "Yêu cầu không hợp lệ. Vui lòng sử dụng ứng dụng chính thức."})
 
     # Kiểm tra user bị khóa
     if username in db.get("blocked_web_login", []):
@@ -674,7 +706,7 @@ def api_predict(game):
     return jsonify({"ok": bool(r), "result": r})
 
 
-def _alert_crack_attempt(username, req, game):
+def _alert_crack_attempt(username, req, game, attack_type="unauthorized_api_call"):
     """Gửi cảnh báo Telegram khi phát hiện crack API"""
     try:
         ip = (req.headers.get("CF-Connecting-IP")
@@ -682,15 +714,25 @@ def _alert_crack_attempt(username, req, game):
               or req.remote_addr or "unknown").strip()
         ua = req.headers.get("User-Agent","N/A")[:100]
         t  = __import__("time").strftime("%H:%M:%S %d/%m/%Y")
+        
+        # Xác định loại tấn công
+        attack_labels = {
+            "unauthorized_api_call": "⚠️ Gọi API không có CSRF Token",
+            "no_session": "🔓 Không có phiên đăng nhập",
+            "missing_token": "🔑 Thiếu CSRF Token",
+        }
+        attack_label = attack_labels.get(attack_type, attack_type)
 
         msg = (
-            f"🚨 PHÁT HIỆN CRACK API\n"
-            f"━━━━━━━━━━━━━━━━━━\n"
+            f"🚨 PHÁT HIỆN CỐ GẮNG XÂM NHẬP API\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"{attack_label}\n"
             f"👤 Tài khoản: {username or '(chưa đăng nhập)'}\n"
             f"🎮 Game: {game}\n"
             f"📡 IP: {ip}\n"
             f"💻 UA: {ua}\n"
             f"🕐 {t}\n\n"
+            f"⚡ Hành động:\n"
             f"👉 Ban web: /band {username}\n"
             f"👉 Ban IP:  /banip {ip}"
         )

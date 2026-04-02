@@ -50,7 +50,8 @@ def create_key(kind="LK", days=None, price=0):
     expires = None if days is None else now + days * 86400
     return {
         "code": code, "type": kind, "price": price,
-        "createdAt": now, "expiresAt": expires,
+        "createdAt": now, "expiresAt": expires, 
+        "duration_days": days,
         "status": "available", "usedBy": None
     }
 
