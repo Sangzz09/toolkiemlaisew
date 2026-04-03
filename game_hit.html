@@ -42,7 +42,7 @@ body::before{content:'';position:absolute;top:0;left:0;width:100%;height:100%;ba
 @keyframes shakeAnim{0%{transform:translate(0,0) rotate(0deg)}10%{transform:translate(-3px,-3px) rotate(-2deg)}20%{transform:translate(3px,-2px) rotate(2deg)}30%{transform:translate(-2px,3px) rotate(-1deg)}40%{transform:translate(2px,2px) rotate(1deg)}50%{transform:translate(-3px,1px) rotate(-2deg)}60%{transform:translate(3px,-3px) rotate(2deg)}70%{transform:translate(-2px,-1px) rotate(-1deg)}80%{transform:translate(2px,3px) rotate(1deg)}90%{transform:translate(-3px,-2px) rotate(-2deg)}100%{transform:translate(0,0) rotate(0deg)}}
 
 .wrapper{max-width:360px;margin:20px auto;background:rgba(0,20,40,0.9);padding:20px;border-radius:16px;box-shadow:0 0 25px rgba(0,200,255,0.4);backdrop-filter:blur(10px);border:1px solid rgba(0,200,255,0.3);position:relative;overflow:hidden;z-index:10;display:none}
-.wrapper::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:linear-gradient(to bottom right,transparent 0%,rgba(0,255,255,0.05) 50%,transparent 100%);transform:rotate(30deg);animation:shine 6s infinite linear}
+.wrapper::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:linear-gradient(to bottom right,transparent 0%,rgba(0,255,255,0.05) 50%,transparent 100%);transform:rotate(30deg);animation:shine 6s infinite linear;pointer-events:none;z-index:0}
 @keyframes shine{0%{transform:rotate(30deg) translate(-30%,-30%)}100%{transform:rotate(30deg) translate(30%,30%)}}
 .game-title-main{text-align:center;color:#00ffff;text-shadow:0 0 10px #00ffff;margin-bottom:15px;font-size:22px;letter-spacing:1px;position:relative}
 .game-title-main::after{content:'';display:block;width:100px;height:2px;background:linear-gradient(90deg,transparent,#00ffff,transparent);margin:10px auto;border-radius:2px}
@@ -130,8 +130,8 @@ gap:4px;
 .h-wait{color:#ffff00;font-weight:bold;opacity:0.8}
 
 /* Tab chọn bàn */
-.ban-tabs{display:flex;gap:8px;justify-content:center;margin-bottom:14px}
-.ban-tab{flex:1;padding:10px 0;border-radius:10px;border:2px solid rgba(0,230,180,0.3);background:rgba(0,0,0,0.3);color:#aaa;font-weight:bold;font-size:14px;cursor:pointer;transition:all 0.25s;text-align:center}
+.ban-tabs{display:flex;gap:8px;justify-content:center;margin-bottom:14px;position:relative;z-index:2}
+.ban-tab{flex:1;padding:10px 0;border-radius:10px;border:2px solid rgba(0,230,180,0.3);background:rgba(0,0,0,0.3);color:#aaa;font-weight:bold;font-size:14px;cursor:pointer;transition:all 0.25s;text-align:center;position:relative;z-index:2}
 .ban-tab.active{background:linear-gradient(135deg,#00e6b4,#00b4d8);color:#0a1628;border-color:#00e6b4;box-shadow:0 4px 15px rgba(0,230,180,0.4)}
 .ban-tab:hover:not(.active){border-color:#00e6b4;color:#00e6b4}
 /* Info cược bàn hũ */
@@ -245,6 +245,7 @@ let lastPrediction = null;
 
 // ── Chuyển bàn ────────────────────────────────────────────────────────────
 function switchBan(ban) {
+    console.log(`[switchBan] Chuyển sang bàn: ${ban}`);
     currentBan = ban;
     document.getElementById('tabMD5').classList.toggle('active', ban === 'md5');
     document.getElementById('tabHu').classList.toggle('active', ban === 'hu');
@@ -255,28 +256,39 @@ function switchBan(ban) {
     document.getElementById('result').textContent = 'Đang chờ...';
     document.getElementById('status').innerHTML = '<span style="color:#ffaa00">●</span> Đang chuyển bàn...';
     lastSession = null;
+    console.log(`[switchBan] Gọi refresh() với endpoint ${ban === 'md5' ? '/api/predict/hit' : '/api/predict/hit-hu'}`);
     refresh();
 }
 
 // ── Refresh dữ liệu ──────────────────────────────────────────────────────
 async function refresh() {
     try {
-        if (currentBan === 'md5') {
-            // Gọi qua backend Flask cho bàn MD5
-            let r = await apiFetch("/api/predict/hit");
-            let j = await r.json();
-            let data = (j && j.result) ? j.result : j;
-            if (data && typeof data === 'object') updateHitMD5(data);
+        let endpoint = currentBan === 'md5' ? "/api/predict/hit" : "/api/predict/hit-hu";
+        console.log(`[refresh] Gọi endpoint: ${endpoint}`);
+        let r = await apiFetch(endpoint);
+        if (!r.ok) {
+            console.error('[refresh error] HTTP', r.status);
+            document.getElementById('status').innerHTML = '<span style="color:#ff4444">●</span> Lỗi API (HTTP ' + r.status + ')';
+            return;
+        }
+        let j = await r.json();
+        console.log(`[refresh] Response:`, j);
+        let data = (j && j.result) ? j.result : j;
+        console.log(`[refresh] Data sau parse:`, data);
+        if (data && typeof data === 'object') {
+            if (currentBan === 'md5') {
+                console.log(`[refresh] Gọi updateHitMD5`);
+                updateHitMD5(data);
+            } else {
+                console.log(`[refresh] Gọi updateHitHu`);
+                updateHitHu(data);
+            }
         } else {
-            // Gọi qua backend Flask cho bàn Hũ (không gọi trực tiếp API)
-            let r = await apiFetch("/api/predict/hit-hu");
-            let j = await r.json();
-            let data = (j && j.result) ? j.result : j;
-            if (data && typeof data === 'object') updateHitHu(data);
+            console.error('[refresh] Data không phải object:', data);
         }
     } catch(e) {
         console.error('[refresh error]', e);
-        document.getElementById('status').innerHTML = '<span style="color:#ff4444">●</span> Mất kết nối';
+        document.getElementById('status').innerHTML = '<span style="color:#ff4444">●</span> Mất kết nối: ' + e.message;
     }
 }
 
@@ -300,11 +312,12 @@ function updateHitMD5(data) {
 
 // ── Cập nhật UI bàn Hũ ───────────────────────────────────────────────────
 function updateHitHu(data) {
-    let phienHienTai = data.phien_hien_tai || "---";
-    let phienTiepTheo = data.phien_tiep_theo || "---";
+    // Xử lý phiên - predict() trả về "phien" và "phien_du_doan"
+    let phien = data.phien || data.phien_hien_tai || "---";
+    let phienTiepTheo = data.phien_du_doan || data.phien_tiep_theo || "---";
 
-    if (lastSession !== phienHienTai) {
-        lastSession = phienHienTai;
+    if (lastSession !== phien) {
+        lastSession = phien;
         triggerRobotEffect();
     }
 
@@ -321,18 +334,14 @@ function updateHitHu(data) {
     document.getElementById('status').innerHTML = '<span style="color:#00ff00">●</span> Đã kết nối';
 
     // Thông tin cược
-    document.getElementById('cuocTai').textContent  = data.cuoc_tai  || "--";
-    document.getElementById('cuocXiu').textContent  = data.cuoc_xiu  || "--";
-    document.getElementById('nguoiTai').textContent = data.nguoi_cuoc_tai  ? data.nguoi_cuoc_tai + " người" : "--";
-    document.getElementById('nguoiXiu').textContent = data.nguoi_cuoc_xiu ? data.nguoi_cuoc_xiu + " người" : "--";
     document.getElementById('loaiCauText').textContent = data.loai_cau || "--";
 
     // Độ tin cậy
     let confRaw = data.do_tin_cay || "72%";
-    let confNum = parseFloat(String(confRaw).replace('%','')) / 100;
+    let confNum = typeof confRaw === 'string' ? parseFloat(confRaw.replace('%',''))/100 : (confRaw > 1 ? confRaw/100 : confRaw);
 
     // Robot UI
-    updateRobotUI(phienHienTai, pred, confNum);
+    updateRobotUI(phien, pred, confNum);
 
     // Pattern / lịch sử dưới dạng text nếu có
     if (data.pattern_16) {
@@ -506,10 +515,6 @@ retina_detect:true
 
 <!-- Info cược (chỉ hiện ở bàn hũ) -->
 <div class="cuoc-info" id="cuocInfo">
-  <div class="cuoc-row"><span class="cuoc-label">💰 Cược Tài</span><span class="cuoc-val" id="cuocTai">--</span></div>
-  <div class="cuoc-row"><span class="cuoc-label">💰 Cược Xỉu</span><span class="cuoc-val" id="cuocXiu">--</span></div>
-  <div class="cuoc-row"><span class="cuoc-label">👥 Người cược Tài</span><span class="cuoc-val" id="nguoiTai">--</span></div>
-  <div class="cuoc-row"><span class="cuoc-label">👥 Người cược Xỉu</span><span class="cuoc-val" id="nguoiXiu">--</span></div>
   <div class="cuoc-row"><span class="cuoc-label">📊 Loại cầu</span><span class="cuoc-val" id="loaiCauText">--</span></div>
 </div>
 

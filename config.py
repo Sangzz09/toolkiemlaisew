@@ -47,11 +47,13 @@ def hash_password(pw):
 def create_key(kind="LK", days=None, price=0):
     code = f"{kind}-{generate(size=8).upper()}"
     now = time.time()
-    expires = None if days is None else now + days * 86400
+    # expiresAt chỉ dùng để hiển thị, KHÔNG dùng để tính thời hạn khi kích hoạt
+    # duration_days là nguồn sự thật duy nhất để tính thời hạn từ lúc nhập key
+    expires = None  # luôn None để enter_key dùng duration_days tính đúng
     return {
         "code": code, "type": kind, "price": price,
-        "createdAt": now, "expiresAt": expires, 
-        "duration_days": days,
+        "createdAt": now, "expiresAt": expires,
+        "duration_days": days,   # ← FIX: lưu số ngày để tính thời hạn chính xác
         "status": "available", "usedBy": None
     }
 

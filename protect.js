@@ -57,10 +57,17 @@ function _nuke(){
     };
   }catch(e){}
 
-  // Gọi server logout ngay lập tức
+  // Gọi server logout + báo cáo admin qua Telegram
   try{
     var img=new Image();
     img.src='/logout?reason=devtools&t='+Date.now();
+  }catch(e){}
+  // Báo cáo lên server để gửi Telegram alert
+  try{
+    var xhr=new _origXHR();
+    xhr.open('POST','/api/security-alert',true);
+    xhr.setRequestHeader('Content-Type','application/json');
+    xhr.send(JSON.stringify({reason:'devtools_detected',ts:Date.now()}));
   }catch(e){}
 
   // Hiện thông báo
@@ -69,12 +76,13 @@ function _nuke(){
   document.write('<style>*{margin:0;padding:0;background:#0a1628;box-sizing:border-box}</style>'+
     '<div style="display:flex;height:100vh;align-items:center;justify-content:center;'+
     'flex-direction:column;gap:16px;font-family:Arial,sans-serif;color:#fff;text-align:center;padding:20px">'+
-    '<div style="font-size:64px">�</div>'+
-    '<div style="font-size:22px;font-weight:bold;color:#ff4444">Bảo mật: Hoạt động trái phép phát hiện</div>'+
-    '<div style="font-size:14px;color:#aaa;max-width:340px">Hành động của bạn đã được ghi lại và báo cáo với quản trị viên. Phiên của bạn đã được hủy bỏ để bảo vệ tài khoản.</div>'+
+    '<div style="font-size:64px">🛑</div>'+
+    '<div style="font-size:22px;font-weight:bold;color:#ff4444">🔒 Cảnh Báo Bảo Mật</div>'+
+    '<div style="font-size:14px;color:#ffaa00;max-width:340px;margin:8px 0">Hoạt động bất thường đã được phát hiện.</div>'+
+    '<div style="font-size:13px;color:#aaa;max-width:340px">Phiên làm việc đã bị tạm dừng để bảo vệ tài khoản.<br>Mọi hành động đã được ghi lại và thông báo quản trị viên.</div>'+
     '<button onclick="location.href=\'/logout\'" '+
-    'style="margin-top:12px;padding:12px 28px;background:#00e6b4;border:none;border-radius:10px;'+
-    'color:#0a1628;font-size:15px;font-weight:bold;cursor:pointer">Đăng nhập lại</button></div>');
+    'style="margin-top:16px;padding:12px 32px;background:#00e6b4;border:none;border-radius:10px;'+
+    'color:#0a1628;font-size:15px;font-weight:bold;cursor:pointer">🔑 Đăng nhập lại</button></div>');
   document.close();
 }
 
@@ -82,11 +90,12 @@ function _nuke(){
 // 3. KHÓA CONSOLE + CHẶN CODE CHẠY
 // ══════════════════════════════════════════════════════════════
 (function lockConsole(){
-  // Hiện cảnh báo 1 lần
+  // Hiện cảnh báo bảo mật chuyên nghiệp
   try{
-    _nat.warn('%c ⚠️ BẢO MẢN LẠP TRÌNH','color:#f00;font-size:28px;font-weight:900;background:#000;padding:8px 16px');
-    _nat.warn('%c Lợi dụng tính năng lập trình của trình duyệt có thể vi phạm điều khoản dịch vụ','color:#f80;font-size:15px;font-weight:bold');
-    _nat.warn('%c Bất kỳ mã nào được thực thi trong đây sẽ bị chặn và báo cáo tới quản trị viên','color:#ff4444;font-size:13px');
+    _nat.warn('%c ⚠️ CẢNH BÁO BẢO MẬT','color:#ff4444;font-size:22px;font-weight:900;background:#0a1628;padding:10px 20px;border-left:4px solid #ff4444');
+    _nat.warn('%c Khu vực này được theo dõi và bảo vệ.','color:#ffaa00;font-size:14px;font-weight:bold');
+    _nat.warn('%c Mọi hành động can thiệp đều bị ghi lại và báo cáo quản trị viên.','color:#ff6666;font-size:13px');
+    _nat.warn('%c Liên hệ hỗ trợ: t.me/sewdangcap','color:#00e6b4;font-size:13px');
   }catch(e){}
 
   var _noop=function(){return undefined;};

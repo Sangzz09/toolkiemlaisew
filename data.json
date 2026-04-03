@@ -35,6 +35,16 @@
       "expiresAt": 1773331825.714622,
       "status": "used",
       "usedBy": "sang"
+    },
+    {
+      "code": "LK-BI5UGCTA",
+      "type": "LK",
+      "price": 0,
+      "createdAt": 1775218422.81938,
+      "expiresAt": 1775304829.3050113,
+      "duration_days": 1,
+      "status": "used",
+      "usedBy": "sang"
     }
   ],
   "users": {
@@ -67,10 +77,10 @@
       "activatedAt": 1773244857.9330287
     },
     "sang": {
-      "code": "LK-7ZNTTUF8",
+      "code": "LK-BI5UGCTA",
       "type": "LK",
-      "expiresAt": 1773331825.714622,
-      "activatedAt": 1773245430.9075947
+      "expiresAt": 1775304829.3050113,
+      "activatedAt": 1775218429.3050137
     }
   },
   "blocked_web_login": [],

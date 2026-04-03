@@ -165,7 +165,7 @@ def _blocked_html(ip):
     return f"""<!DOCTYPE html>
 <html><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Bị chặn - TOOLKIEMLAISEW.SITE</title>
+<title>Truy cập bị từ chối - TOOLKIEMLAISEW.SITE</title>
 <style>
 *{{margin:0;padding:0;box-sizing:border-box}}
 body{{background:#0a1628;display:flex;align-items:center;justify-content:center;
@@ -182,10 +182,9 @@ a{{color:#00e6b4;font-weight:bold;text-decoration:none;font-size:15px}}
 </style></head>
 <body><div class="box">
 <div class="icon">🚫</div>
-<h1>IP của bạn đã bị chặn</h1>
+<h1>⛔ Truy Cập Bị Từ Chối</h1>
 <div class="ip">📡 IP: {ip}</div>
-<p>Bạn đã vi phạm điều khoản sử dụng</p>
-<p>của <strong>TOOLKIEMLAISEW.SITE</strong></p>
+<p>IP này đã bị hạn chế truy cập do vi phạm điều khoản sử dụng của <strong>TOOLKIEMLAISEW.SITE</strong>.</p>
 <p style="margin-top:14px">Để khiếu nại hoặc mua key:</p>
 <p><a href="https://t.me/sewdangcap">📩 t.me/sewdangcap</a></p>
 </div></body></html>"""
@@ -208,7 +207,7 @@ def detect_and_block():
             # API call → JSON
             return jsonify({
                 "ok":    False,
-                "error": "tuổi đéo gì mà lấy 🖕 IP bị chặn. Mua key: t.me/sewdangcap",
+                "error": "⛔ IP của bạn đã bị chặn do vi phạm điều khoản. Liên hệ hỗ trợ: t.me/sewdangcap",
                 "code":  403
             }), 403
         else:
@@ -243,10 +242,10 @@ def detect_and_block():
         # Gọi thẳng từ ngoài không qua web (F12 hoặc script)
         save_log(ip, username, request.path, ua)
         send_alert(ip, username, request.path, ua)
-        print(f"[CRACK] {ip} | {username} | no CSRF")
+        print(f"[SECURITY] Unauthorized API access: {ip} | {username} | no CSRF token")
         return jsonify({
             "ok":    False,
-            "error": "tuổi đéo gì mà lấy 🖕\nMuốn dùng tool? Mua key tại: t.me/sewdangcap",
+            "error": "⛔ Truy cập không được phép. Vui lòng đăng nhập và sử dụng qua giao diện chính thức.",
             "code":  403
         }), 403
 

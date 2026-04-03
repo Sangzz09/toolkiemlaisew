@@ -1135,6 +1135,7 @@ def predict(game, ban="md5"):
         # Initialize variables for both branches
         loai_cau = None
         pattern_16 = None
+        pattern = None  # Pattern từ API
         cuoc_tai = None
         cuoc_xiu = None
         nguoi_cuoc_tai = None
@@ -1203,16 +1204,31 @@ def predict(game, ban="md5"):
                 raw = raw_response
                 phien = str(raw.get("Phien") or raw.get("phien", "---"))
                 ket = normalize(raw.get("Ket_qua") or raw.get("ket_qua"))
-                phien_tiep_theo = str(int(phien) + 1) if phien and phien != "---" else "---"
+                
+                # Hỗ trợ field phien_du_doan mới từ API mới
+                if "phien_du_doan" in raw:
+                    phien_tiep_theo = str(raw.get("phien_du_doan", "---"))
+                else:
+                    phien_tiep_theo = str(int(phien) + 1) if phien and phien != "---" else "---"
+                
                 api_du = normalize(raw.get("Du_doan") or raw.get("du_doan"))
                 raw_conf = raw.get("Do_tin_cay") or raw.get("do_tin_cay")
                 
-                # Cố gắng lấy xúc xắc
-                x1 = raw.get("Xuc_xac_1") or raw.get("xuc_xac_1", 0)
-                x2 = raw.get("Xuc_xac_2") or raw.get("xuc_xac_2", 0)
-                x3 = raw.get("Xuc_xac_3") or raw.get("xuc_xac_3", 0)
-                xuc_xac = [x1, x2, x3]
-                tong = raw.get("Tong") or raw.get("tong", 0)
+                # Hỗ trợ xúc xắc dạng mảng [1,2,3] hoặc field riêng
+                xuc_xac_raw = raw.get("xuc_xac")
+                if isinstance(xuc_xac_raw, list) and len(xuc_xac_raw) >= 3:
+                    xuc_xac = xuc_xac_raw[:3]
+                else:
+                    # Cố gắng lấy xúc xắc từ field riêng
+                    x1 = raw.get("Xuc_xac_1") or raw.get("xuc_xac_1", 0)
+                    x2 = raw.get("Xuc_xac_2") or raw.get("xuc_xac_2", 0)
+                    x3 = raw.get("Xuc_xac_3") or raw.get("xuc_xac_3", 0)
+                    xuc_xac = [x1, x2, x3]
+                
+                tong = sum(xuc_xac) if xuc_xac else 0
+                
+                # Lấy pattern từ API (nếu có)
+                pattern = raw.get("pattern")
 
         # Lưu kết quả NGAY từ API
         if ket and ket in ["Tài", "Xỉu"]:
@@ -1254,6 +1270,11 @@ def predict(game, ban="md5"):
             "accuracy": f"{STATS[game]['correct']}/{STATS[game]['total']}" if STATS[game]['total'] > 0 else "0/0",
             "history": get_formatted_history(game)
         }
+        
+        # Thêm dữ liệu chi tiết cho bàn MD5 (nếu API trả về pattern)
+        if ban == "md5" or game == "hit":
+            if pattern:
+                response["pattern"] = pattern
         
         # Thêm dữ liệu chi tiết cho bàn Hũ
         if ban == "hu" or game == "hit-hu":
@@ -1323,7 +1344,12 @@ def predict(game, ban="md5"):
         is_ban_do = (ban == "do" or game == "68gb-do")
 
         if not is_ban_do:
-            raw = safe_json(API_68GB_XANH, timeout=8)
+            raw_res = safe_json(API_68GB_XANH, timeout=8)
+            # Tự động gỡ bọc nếu API trả về dạng {"data": {...}}
+            if raw_res and "data" in raw_res and isinstance(raw_res["data"], dict):
+                raw = raw_res["data"]
+            else:
+                raw = raw_res
         else:
             raw_all = safe_json(API_68GB, timeout=8)
             target_key = "bando"
@@ -1364,15 +1390,10 @@ def predict(game, ban="md5"):
             
         phien_du_doan = str(raw.get("phien_du_doan") or raw.get("phien") or "---")
         
-        if "phien_hien_tai" in raw:
-            phien_hien_tai = str(raw.get("phien_hien_tai"))
-        elif "Phien" in raw:
-            phien_hien_tai = str(raw.get("Phien"))
-        else:
-            try:
-                phien_hien_tai = str(int(phien_du_doan) - 1) if phien_du_doan.isdigit() else "---"
-            except:
-                phien_hien_tai = "---"
+        # Trích xuất chính xác theo chuẩn JSON mới cung cấp
+        phien_hien_tai = str(raw.get("phien_hien_tai") or raw.get("Phien") or "---")
+        if phien_hien_tai == "---" and phien_du_doan.isdigit():
+            phien_hien_tai = str(int(phien_du_doan) - 1)
 
         phien = phien_hien_tai  # phiên hiện tại để lưu lịch sử
         phien_tiep_theo = phien_du_doan  # phiên đang dự đoán
@@ -1389,10 +1410,12 @@ def predict(game, ban="md5"):
         api_du = normalize(raw.get("du_doan") or raw.get("Du_doan") or raw.get("predict"))
         
         # Parse confidence
-        raw_conf = raw.get("do_tin_cay") or raw.get("Do_tin_cay") or raw.get("confidence")
+        raw_conf = raw.get("do_tin_cay")
+        if raw_conf is None:
+            raw_conf = raw.get("Do_tin_cay") or raw.get("confidence")
         api_conf = None
         try:
-            if raw_conf:
+            if raw_conf is not None:
                 conf_val = float(str(raw_conf).replace('%', '').replace(',', '.'))
                 api_conf = conf_val / 100 if conf_val > 1 else conf_val
         except: pass
