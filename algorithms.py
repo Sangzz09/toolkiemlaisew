@@ -8,7 +8,7 @@ import requests
 
 # ================== API GAMES ==================
 API_SUN = "https://crack-production-7f42.up.railway.app/api/sunwin"
-LINK_SUN = "https://t.me/sewdangcap"
+LINK_SUN = "https://web.sunwin.live/?affId=Sunwin"
 API_HIT = "https://apihitclubmd5-x6r3.onrender.com/"
 API_HIT_HU = "https://apihitclubhu.onrender.com/"
 API_SUM = ""  # SumClub đã bỏ
@@ -21,7 +21,7 @@ API_B52B = "https://b52-taixiu-l69b.onrender.com/api/taixiu"
 API_LUCK8 = "https://luck8md5vip-4vph.onrender.com/api/taixiu"
 LOGO_LUCK8 = "https://i.postimg.cc/tg4Pgzzt/IMG-1702.jpg"
 API_SICBO = "https://sicbosunwin.onrender.com/api/sicbo/sunwin"
-LINK_SICBO = "https://web.sunwin.ca/"
+LINK_SICBO = "https://web.sunwin.live/?affId=Sunwin"
 LOGO_SICBO = "https://i.postimg.cc/fR36RRwD/IMG-2036.jpg"
 API_789 = "https://api789hix.hacksieucap.pro/taixiuv3"
 LOGO_789 = "https://i.postimg.cc/43HWjS37/789.webp"
