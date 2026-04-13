@@ -48,7 +48,7 @@ def create_deposit_order(username: str, amount: int) -> str:
                 _save(pending)
             return k
     
-    rand    = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+    rand    = ''.join(random.choices(string.digits, k=8))
     content = f"NAP {username} {rand}"
     pending[content] = {
         "username": username, 
@@ -95,43 +95,6 @@ def process_sepay_webhook(payload: dict) -> dict:
         print("[SEPAY DEBUG] ❌ Lỗi: Thiếu nội dung hoặc số tiền <= 0")
         return {"success": False, "message": "missing content or amount"}
 
-    # >>> LOGIC MỚI: Ưu tiên xử lý cú pháp "NAP <username>" từ nhóm
-    content_upper = content.upper()
-    if content_upper.startswith("NAP "):
-        parts = content.split()
-        if len(parts) >= 2:
-            username = parts[1]
-            db = load_db()
-            if username in db.get("users", {}):
-                # Chống xử lý trùng
-                done_ids = [t.get("sepay_txn_id") for t in db.get("transactions", []) if t.get("sepay_txn_id")]
-                if txn_id and txn_id in done_ids:
-                    print(f"[SEPAY DEBUG] ⚠️ Giao dịch {txn_id} (NAP <user>) đã được xử lý. Bỏ qua.")
-                    return {"success": True, "message": "already processed"}
-
-                # Cộng tiền
-                db["users"][username]["balance"] += amount
-                db.setdefault("transactions", []).append({
-                    "type": "deposit", "username": username, "amount": amount,
-                    "time": time.time(), "status": "completed", "method": "sepay_auto_group",
-                    "transfer_content": content, "sepay_txn_id": txn_id
-                })
-                save_db(db)
-                new_balance = db["users"][username]["balance"]
-
-                # Thông báo admin
-                _notify(
-                    f"✅ NẠP TIỀN TỰ ĐỘNG (NHÓM)\n\n"
-                    f"👤 Tài khoản: {username}\n"
-                    f"💰 +{amount:,}đ\n"
-                    f"💎 Số dư mới: {new_balance:,}đ\n"
-                    f"📝 {content}"
-                )
-                return {"success": True, "message": f"deposited {amount} for {username} via group command"}
-            else:
-                _notify(f"⚠️ NHẬN {amount:,}đ - USER KHÔNG TỒN TẠI\n📝 {content}")
-                return {"success": True, "message": "user not found but ignored"}
-
     # Dọn đơn hết hạn (15 phút)
     pending = _load()
     now     = time.time()
@@ -144,18 +107,8 @@ def process_sepay_webhook(payload: dict) -> dict:
     # Tìm đơn khớp nội dung CK
     matched_key = matched_order = None
     for key, order in pending.items():
-        # Cách 1: Khớp cả cụm (NAP user code)
+        # Chỉ khớp chính xác toàn bộ cụm nội dung (VD: NAP username 12345678)
         if key.upper() in content.upper():
-            matched_key, matched_order = key, order
-            break
-        
-        # Cách 2: Khớp mã code riêng lẻ (phòng trường hợp user quên ghi NAP)
-        code = order.get("code")
-        if not code: # Fallback cho data cũ
-            parts = key.split()
-            if parts: code = parts[-1]
-        
-        if code and len(code) >= 5 and code.upper() in content.upper():
             matched_key, matched_order = key, order
             break
 
