@@ -742,6 +742,169 @@ def api_predict_hit_hu():
     return jsonify({"ok": bool(r), "result": r})
 
 
+@bp.route("/api/predict/hit-md5-raw", methods=["POST"])
+@csrf_required
+def api_predict_hit_md5_raw():
+    """Nhận raw data từ frontend (frontend tự fetch API ngoài), chạy thuật toán local"""
+    if "username" not in session:
+        return jsonify({"ok": False, "error": "⛔ Chưa đăng nhập"})
+
+    username = session["username"]
+    db = load_db()
+    active_key = db["active"].get(username)
+    if not active_key:
+        return jsonify({"ok": False, "error": "Chưa kích hoạt key"})
+    if active_key["expiresAt"] is not None and active_key["expiresAt"] < time.time():
+        return jsonify({"ok": False, "error": "Key đã hết hạn"})
+
+    try:
+        raw = request.get_json(force=True)
+        if not raw:
+            return jsonify({"ok": False, "error": "Không có data"})
+
+        from predict import predict, HIST, STATS, analyze, normalize, record_prediction, update_prediction_results, save_history, analyze_and_save_cau_patterns, get_formatted_history
+
+        h = HIST["hit"]
+        phien = str(raw.get("phien") or raw.get("Phien", "---"))
+        ket = normalize(raw.get("ket_qua") or raw.get("Ket_qua"))
+
+        if "phien_du_doan" in raw:
+            phien_tiep_theo = str(raw.get("phien_du_doan", "---"))
+        else:
+            phien_tiep_theo = str(int(phien) + 1) if phien and phien != "---" and phien.isdigit() else "---"
+
+        api_du = normalize(raw.get("du_doan") or raw.get("Du_doan"))
+        raw_conf = raw.get("do_tin_cay") or raw.get("Do_tin_cay")
+        pattern = raw.get("pattern")
+
+        xuc_xac_raw = raw.get("xuc_xac")
+        if isinstance(xuc_xac_raw, list) and len(xuc_xac_raw) >= 3:
+            xuc_xac = xuc_xac_raw[:3]
+        else:
+            xuc_xac = [raw.get("xuc_xac_1", 0), raw.get("xuc_xac_2", 0), raw.get("xuc_xac_3", 0)]
+        tong = sum(xuc_xac)
+
+        if ket and ket in ["Tài", "Xỉu"]:
+            update_prediction_results("hit", phien, ket)
+            if not h or h[-1] != ket:
+                h.append(ket)
+                save_history()
+                analyze_and_save_cau_patterns(list(h), "hit")
+
+        try:
+            conf_val = float(str(raw_conf).replace('%', '').replace(',', '.'))
+            api_conf = conf_val / 100 if conf_val > 1 else conf_val
+        except:
+            api_conf = None
+
+        du, conf = analyze(list(h), "hit", api_prediction=api_du)
+        if api_conf is not None:
+            conf = api_conf
+
+        record_prediction("hit", phien_tiep_theo, du, conf)
+
+        result = {
+            "game": "HitClub",
+            "phien": phien,
+            "phien_du_doan": phien_tiep_theo,
+            "ket_qua": ket or "Đang chờ...",
+            "xuc_xac": xuc_xac,
+            "tong_xuc_xac": tong,
+            "du_doan": du,
+            "do_tin_cay": conf,
+            "ban": "md5",
+            "accuracy": f"{STATS['hit']['correct']}/{STATS['hit']['total']}" if STATS['hit']['total'] > 0 else "0/0",
+            "history": get_formatted_history("hit")
+        }
+        if pattern:
+            result["pattern"] = pattern
+
+        return jsonify({"ok": True, "result": result})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
+
+
+@bp.route("/api/predict/hit-hu-raw", methods=["POST"])
+@csrf_required
+def api_predict_hit_hu_raw():
+    """Nhận raw data bàn Hũ từ frontend"""
+    if "username" not in session:
+        return jsonify({"ok": False, "error": "⛔ Chưa đăng nhập"})
+
+    username = session["username"]
+    db = load_db()
+    active_key = db["active"].get(username)
+    if not active_key:
+        return jsonify({"ok": False, "error": "Chưa kích hoạt key"})
+    if active_key["expiresAt"] is not None and active_key["expiresAt"] < time.time():
+        return jsonify({"ok": False, "error": "Key đã hết hạn"})
+
+    try:
+        raw = request.get_json(force=True)
+        if not raw:
+            return jsonify({"ok": False, "error": "Không có data"})
+
+        from predict import HIST, STATS, analyze, normalize, record_prediction, get_formatted_history
+
+        h = HIST["hit-hu"]
+        phien_hien_tai = str(raw.get("phien_hien_tai", "")).replace("#", "").strip()
+        phien = phien_hien_tai if phien_hien_tai else "---"
+        phien_tiep_theo = str(raw.get("phien_tiep_theo") or phien_hien_tai or "---").replace("#", "")
+
+        api_du_raw = raw.get("du_doan")
+        api_du = normalize(api_du_raw) if api_du_raw != "?" else None
+        raw_conf = raw.get("do_tin_cay") or raw.get("confidence")
+
+        loai_cau = raw.get("loai_cau", "Cầu thường")
+        pattern_16 = raw.get("pattern_16", "")
+        cuoc_tai = raw.get("cuoc_tai", "0")
+        cuoc_xiu = raw.get("cuoc_xiu", "0")
+        nguoi_cuoc_tai = raw.get("nguoi_cuoc_tai", 0)
+        nguoi_cuoc_xiu = raw.get("nguoi_cuoc_xiu", 0)
+        phieu_tai = raw.get("phieu_Tai", 0)
+        phieu_xiu = raw.get("phieu_Xiu", 0)
+        lich_su_count = raw.get("lich_su_count", 0)
+
+        try:
+            conf_val = float(str(raw_conf).replace('%', '').replace(',', '.'))
+            api_conf = conf_val / 100 if conf_val > 1 else conf_val
+        except:
+            api_conf = None
+
+        du, conf = analyze(list(h), "hit-hu", api_prediction=api_du)
+        if api_conf is not None:
+            conf = api_conf
+
+        record_prediction("hit-hu", phien_tiep_theo, du, conf)
+
+        result = {
+            "game": "HitClub Hũ",
+            "phien": phien,
+            "phien_du_doan": phien_tiep_theo,
+            "ket_qua": "Bàn hũ realtime",
+            "xuc_xac": [0, 0, 0],
+            "tong_xuc_xac": 0,
+            "du_doan": du,
+            "do_tin_cay": conf,
+            "ban": "hu",
+            "loai_cau": loai_cau,
+            "pattern": pattern_16,
+            "pattern_16": pattern_16,
+            "cuoc_tai": cuoc_tai,
+            "cuoc_xiu": cuoc_xiu,
+            "nguoi_cuoc_tai": nguoi_cuoc_tai,
+            "nguoi_cuoc_xiu": nguoi_cuoc_xiu,
+            "phieu_tai": phieu_tai,
+            "phieu_xiu": phieu_xiu,
+            "lich_su_count": lich_su_count,
+            "accuracy": f"{STATS['hit-hu']['correct']}/{STATS['hit-hu']['total']}" if STATS['hit-hu']['total'] > 0 else "0/0",
+            "history": get_formatted_history("hit-hu")
+        }
+        return jsonify({"ok": True, "result": result})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
+
+
 @bp.route("/api/predict/<game>")
 def api_predict(game):
     # --- KIỂM TRA ĐĂNG NHẬP ---

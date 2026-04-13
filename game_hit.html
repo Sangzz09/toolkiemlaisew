@@ -236,7 +236,7 @@ async function apiFetch(url) {
 // ──────────────────────────────────────────────────────────────────────────
 
 // ── API HitClub ──────────────────────────────────────────────────────────
-const API_HIT_MD5 = "https://toolgameai.site/tt.php?id=hellokietne21&key=bomaylakiet&token=ditmemay&game=hitmd5";
+const API_HIT_MD5 = "https://apihitclubmd5pro.onrender.com/";
 const API_HIT_HU  = "https://apihitclubhu.onrender.com/";
 
 let currentBan = 'md5'; // 'md5' hoặc 'hu'
@@ -263,28 +263,78 @@ function switchBan(ban) {
 // ── Refresh dữ liệu ──────────────────────────────────────────────────────
 async function refresh() {
     try {
-        let endpoint = currentBan === 'md5' ? "/api/predict/hit" : "/api/predict/hit-hu";
-        console.log(`[refresh] Gọi endpoint: ${endpoint}`);
-        let r = await apiFetch(endpoint);
-        if (!r.ok) {
-            console.error('[refresh error] HTTP', r.status);
-            document.getElementById('status').innerHTML = '<span style="color:#ff4444">●</span> Lỗi API (HTTP ' + r.status + ')';
-            return;
-        }
-        let j = await r.json();
-        console.log(`[refresh] Response:`, j);
-        let data = (j && j.result) ? j.result : j;
-        console.log(`[refresh] Data sau parse:`, data);
-        if (data && typeof data === 'object') {
-            if (currentBan === 'md5') {
-                console.log(`[refresh] Gọi updateHitMD5`);
-                updateHitMD5(data);
-            } else {
-                console.log(`[refresh] Gọi updateHitHu`);
-                updateHitHu(data);
+        let rawData = null;
+
+        if (currentBan === 'md5') {
+            // Bước 1: Frontend tự fetch API ngoài
+            console.log(`[refresh] Gọi endpoint: ${API_HIT_MD5}`);
+            try {
+                let extRes = await fetch(API_HIT_MD5, { cache: "no-cache" });
+                if (extRes.ok) rawData = await extRes.json();
+            } catch(e) {
+                console.warn('[refresh] Lỗi fetch API ngoài MD5:', e.message);
             }
+
+            if (!rawData) {
+                document.getElementById('status').innerHTML = '<span style="color:#ff4444">●</span> Mất kết nối API nguồn';
+                return;
+            }
+
+            // Bước 2: POST raw data lên backend xử lý thuật toán
+            console.log('[refresh] Raw MD5 data:', rawData);
+            const token = await getCsrfToken();
+            let r = await fetch("/api/predict/hit-md5-raw", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(token ? { "X-CSRF-Token": token } : {})
+                },
+                body: JSON.stringify(rawData)
+            });
+            let j = await r.json();
+            console.log(`[refresh] Response backend:`, j);
+            if (j && j.ok && j.result) updateHitMD5(j.result);
+            else console.error('[refresh] Backend lỗi:', j);
+
         } else {
-            console.error('[refresh] Data không phải object:', data);
+            // Bàn Hũ — thử fetch trực tiếp, nếu CORS lỗi fallback qua backend
+            console.log(`[refresh] Gọi API Hũ: ${API_HIT_HU}`);
+            try {
+                let extRes = await fetch(API_HIT_HU, { cache: "no-cache" });
+                if (extRes.ok) rawData = await extRes.json();
+            } catch(e) {
+                console.warn('[refresh] CORS/lỗi fetch API Hũ:', e.message, '→ fallback backend');
+            }
+
+            if (rawData) {
+                // Có data từ API ngoài → POST lên backend xử lý thuật toán
+                console.log('[refresh] Raw Hũ data:', rawData);
+                const token = await getCsrfToken();
+                let r = await fetch("/api/predict/hit-hu-raw", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        ...(token ? { "X-CSRF-Token": token } : {})
+                    },
+                    body: JSON.stringify(rawData)
+                });
+                let j = await r.json();
+                console.log(`[refresh] Response backend Hũ:`, j);
+                if (j && j.ok && j.result) updateHitHu(j.result);
+                else console.error('[refresh] Backend Hũ lỗi:', j);
+            } else {
+                // Fallback: gọi backend cũ
+                console.log('[refresh] Fallback → /api/predict/hit-hu');
+                let r = await apiFetch("/api/predict/hit-hu");
+                if (!r.ok) {
+                    document.getElementById('status').innerHTML = '<span style="color:#ff4444">●</span> Mất kết nối API Hũ';
+                    return;
+                }
+                let j = await r.json();
+                let data = (j && j.result) ? j.result : j;
+                if (data && data.du_doan) updateHitHu(data);
+                else document.getElementById('status').innerHTML = '<span style="color:#ff4444">●</span> API Hũ không có dữ liệu';
+            }
         }
     } catch(e) {
         console.error('[refresh error]', e);
