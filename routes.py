@@ -1208,6 +1208,15 @@ def ping():
     return "pong", 200
 
 
+@bp.route("/protect.js")
+def serve_protect_js():
+    """Serve protect.js từ thư mục gốc project"""
+    import os
+    from flask import send_from_directory
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    return send_from_directory(base_dir, "protect.js", mimetype="application/javascript")
+
+
 def register_routes(app):
     app.register_blueprint(bp)
     register_security(app)

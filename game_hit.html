@@ -266,11 +266,16 @@ async function refresh() {
         let rawData = null;
 
         if (currentBan === 'md5') {
-            // Bước 1: Frontend tự fetch API ngoài
+            // Bước 1: Frontend tự fetch API ngoài (dùng XHR gốc để tránh protect.js override fetch)
             console.log(`[refresh] Gọi endpoint: ${API_HIT_MD5}`);
             try {
-                let extRes = await fetch(API_HIT_MD5, { cache: "no-cache" });
-                if (extRes.ok) rawData = await extRes.json();
+                rawData = await new Promise((resolve, reject) => {
+                    let xhr = new XMLHttpRequest();
+                    xhr.open('GET', API_HIT_MD5, true);
+                    xhr.onload = () => { try { resolve(JSON.parse(xhr.responseText)); } catch(e) { reject(e); } };
+                    xhr.onerror = () => reject(new Error('XHR error'));
+                    xhr.send();
+                });
             } catch(e) {
                 console.warn('[refresh] Lỗi fetch API ngoài MD5:', e.message);
             }
@@ -300,8 +305,13 @@ async function refresh() {
             // Bàn Hũ — thử fetch trực tiếp, nếu CORS lỗi fallback qua backend
             console.log(`[refresh] Gọi API Hũ: ${API_HIT_HU}`);
             try {
-                let extRes = await fetch(API_HIT_HU, { cache: "no-cache" });
-                if (extRes.ok) rawData = await extRes.json();
+                rawData = await new Promise((resolve, reject) => {
+                    let xhr = new XMLHttpRequest();
+                    xhr.open('GET', API_HIT_HU, true);
+                    xhr.onload = () => { try { resolve(JSON.parse(xhr.responseText)); } catch(e) { reject(e); } };
+                    xhr.onerror = () => reject(new Error('XHR error'));
+                    xhr.send();
+                });
             } catch(e) {
                 console.warn('[refresh] CORS/lỗi fetch API Hũ:', e.message, '→ fallback backend');
             }
@@ -527,7 +537,6 @@ modes:{bubble:{distance:200,size:6,duration:2,opacity:0.8,speed:3},push:{particl
 retina_detect:true
 });
 </script>
-<script src="/static/protect.js"></script>
 </head>
 <body data-u="{{ session.get('username','') }}">
 <div id="particles-js"></div>
@@ -615,5 +624,6 @@ retina_detect:true
   }, 30000); // 30 giây
 })();
 </script>
+<script src="/protect.js"></script>
 </body>
 </html>
