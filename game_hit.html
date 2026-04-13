@@ -256,7 +256,7 @@ function switchBan(ban) {
     document.getElementById('result').textContent = 'Đang chờ...';
     document.getElementById('status').innerHTML = '<span style="color:#ffaa00">●</span> Đang chuyển bàn...';
     lastSession = null;
-    console.log(`[switchBan] Gọi refresh() với endpoint ${ban === 'md5' ? '/api/predict/hit' : '/api/predict/hit-hu'}`);
+    console.log(`[switchBan] Gọi refresh() với bàn: ${ban}`);
     refresh();
 }
 

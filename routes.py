@@ -762,7 +762,8 @@ def api_predict_hit_md5_raw():
         if not raw:
             return jsonify({"ok": False, "error": "Không có data"})
 
-        from predict import predict, HIST, STATS, analyze, normalize, record_prediction, update_prediction_results, save_history, analyze_and_save_cau_patterns, get_formatted_history
+        from predict import predict, HIST, STATS, analyze, record_prediction, update_prediction_results, save_history, analyze_and_save_cau_patterns, get_formatted_history
+        from algorithms import normalize
 
         h = HIST["hit"]
         phien = str(raw.get("phien") or raw.get("Phien", "---"))
@@ -844,7 +845,8 @@ def api_predict_hit_hu_raw():
         if not raw:
             return jsonify({"ok": False, "error": "Không có data"})
 
-        from predict import HIST, STATS, analyze, normalize, record_prediction, get_formatted_history
+        from predict import HIST, STATS, analyze, record_prediction, get_formatted_history
+        from algorithms import normalize
 
         h = HIST["hit-hu"]
         phien_hien_tai = str(raw.get("phien_hien_tai", "")).replace("#", "").strip()
