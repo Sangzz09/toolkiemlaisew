@@ -8,9 +8,9 @@ import requests
 
 # ================== API GAMES ==================
 API_SUN = "https://crack-production-7f42.up.railway.app/api/sunwin"
-LINK_SUN = "https://web.sunwin.ag/?affId=Sunwin"
-API_HIT = "https://toolgameai.site/tt.php?id=hellokietne21&key=bomaylakiet&token=ditmemay&game=hithu"
-API_HIT_HU = "https://toolgameai.site/tt.php?id=hellokietne21&key=bomaylakiet&token=ditmemay&game=hithu"
+LINK_SUN = "https://web.sunwin.live/?affId=Sunwin"
+API_HIT = "https://apihitclubmd5pro.onrender.com/"
+API_HIT_HU = "https://apihitclubhu.onrender.com/"
 API_SUM = ""  # SumClub đã bỏ
 LOGO_SUNWIN = "https://i.postimg.cc/q7ybsvSb/IMG-1615.jpg"
 LOGO_HITCLUB = "https://i.postimg.cc/66YHLSbG/IMG-1616.jpg"
@@ -18,14 +18,15 @@ LOGO_SUMCLUB = ""
 LOGO_B52 = "https://i.postimg.cc/q7swtZCB/IMG-1617.jpg"
 API_B52A = "https://b52-taixiu-l69b.onrender.com/api/taixiu"
 API_B52B = "https://b52-taixiu-l69b.onrender.com/api/taixiu"
-API_LUCK8 = "https://luck8md5vippro.onrender.com/api/taixiu"
+API_LUCK8 = "https://luck8md5vip-4vph.onrender.com/api/taixiu"
 LOGO_LUCK8 = "https://i.postimg.cc/tg4Pgzzt/IMG-1702.jpg"
-API_SICBO = "https://sicsunnehahahaha.onrender.com/predict"
-LINK_SICBO = "https://web.sunwin.ag/?affId=Sunwin"
+API_SICBO = "https://sicbosunwin.onrender.com/api/sicbo/sunwin"
+LINK_SICBO = "https://web.sunwin.live/?affId=Sunwin"
 LOGO_SICBO = "https://i.postimg.cc/fR36RRwD/IMG-2036.jpg"
 API_789 = "https://api789hix.hacksieucap.pro/taixiuv3"
 LOGO_789 = "https://i.postimg.cc/43HWjS37/789.webp"
 API_68GB = "https://six8gbsew.onrender.com/all"
+API_68GB_XANH = "https://crack-production-7f42.up.railway.app/api/68gb"
 LOGO_68GB = "https://i.postimg.cc/zDQVG2DG/OIP.webp"
 API_LC79 = "https://crack-production-7f42.up.railway.app/api/lc79"
 LOGO_LC79 = "https://i.postimg.cc/vTSzPJnm/lc79.webp"
@@ -69,7 +70,7 @@ def predict_sicbo_dice_position(h, recent_totals):
             return [8, 9, 10]
 
 
-def safe_json(url, timeout=5):
+def safe_json(url, timeout=8):
     try:
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"

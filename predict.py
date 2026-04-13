@@ -1192,43 +1192,30 @@ def predict(game, ban="md5"):
             raw_response = safe_json(API_HIT)
             if not raw_response: return None
             
-            if "success" in raw_response and "data" in raw_response:
-                raw = raw_response.get("data", {})
-                phien_hien_tai = raw.get("phien_hien_tai")
-                phien = str(int(phien_hien_tai) - 1) if phien_hien_tai else "---"
-                ket = None
-                phien_tiep_theo = str(phien_hien_tai) if phien_hien_tai else "---"
-                api_du = normalize(raw.get("du_doan"))
-                raw_conf = raw.get("confidence")
+            raw = raw_response.get("data", raw_response) if isinstance(raw_response, dict) else raw_response
+            
+            phien = str(raw.get("phien") or raw.get("Phien", "---"))
+            ket = normalize(raw.get("ket_qua") or raw.get("Ket_qua"))
+            
+            if "phien_du_doan" in raw:
+                phien_tiep_theo = str(raw.get("phien_du_doan", "---"))
             else:
-                raw = raw_response
-                phien = str(raw.get("Phien") or raw.get("phien", "---"))
-                ket = normalize(raw.get("Ket_qua") or raw.get("ket_qua"))
-                
-                # Hỗ trợ field phien_du_doan mới từ API mới
-                if "phien_du_doan" in raw:
-                    phien_tiep_theo = str(raw.get("phien_du_doan", "---"))
-                else:
-                    phien_tiep_theo = str(int(phien) + 1) if phien and phien != "---" else "---"
-                
-                api_du = normalize(raw.get("Du_doan") or raw.get("du_doan"))
-                raw_conf = raw.get("Do_tin_cay") or raw.get("do_tin_cay")
-                
-                # Hỗ trợ xúc xắc dạng mảng [1,2,3] hoặc field riêng
-                xuc_xac_raw = raw.get("xuc_xac")
-                if isinstance(xuc_xac_raw, list) and len(xuc_xac_raw) >= 3:
-                    xuc_xac = xuc_xac_raw[:3]
-                else:
-                    # Cố gắng lấy xúc xắc từ field riêng
-                    x1 = raw.get("Xuc_xac_1") or raw.get("xuc_xac_1", 0)
-                    x2 = raw.get("Xuc_xac_2") or raw.get("xuc_xac_2", 0)
-                    x3 = raw.get("Xuc_xac_3") or raw.get("xuc_xac_3", 0)
-                    xuc_xac = [x1, x2, x3]
-                
-                tong = sum(xuc_xac) if xuc_xac else 0
-                
-                # Lấy pattern từ API (nếu có)
-                pattern = raw.get("pattern")
+                phien_tiep_theo = str(int(phien) + 1) if phien and phien != "---" else "---"
+            
+            api_du = normalize(raw.get("du_doan") or raw.get("Du_doan"))
+            raw_conf = raw.get("do_tin_cay") or raw.get("Do_tin_cay")
+            
+            xuc_xac_raw = raw.get("xuc_xac")
+            if isinstance(xuc_xac_raw, list) and len(xuc_xac_raw) >= 3:
+                xuc_xac = xuc_xac_raw[:3]
+            else:
+                x1 = raw.get("xuc_xac_1", 0)
+                x2 = raw.get("xuc_xac_2", 0)
+                x3 = raw.get("xuc_xac_3", 0)
+                xuc_xac = [x1, x2, x3]
+            
+            tong = sum(xuc_xac) if xuc_xac else 0
+            pattern = raw.get("pattern")
 
         # Lưu kết quả NGAY từ API
         if ket and ket in ["Tài", "Xỉu"]:
