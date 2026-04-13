@@ -59,6 +59,16 @@
       "actual": null,
       "correct": null,
       "counted": false
+    },
+    {
+      "timestamp": 1776075093.2539215,
+      "last_update": 1776075093.2539217,
+      "session": "3060847",
+      "prediction": "T�i",
+      "confidence": 0.9,
+      "actual": null,
+      "correct": null,
+      "counted": false
     }
   ],
   "hit": [
@@ -81,46 +91,9 @@
       "actual": null,
       "correct": null,
       "counted": false
-    }
-  ],
-  "sum": [],
-  "b52": [],
-  "luck8": [],
-  "sicbo": [
-    {
-      "timestamp": 1773245459.549259,
-      "last_update": 1773245465.8882918,
-      "session": "2458117",
-      "prediction": "Tài",
-      "confidence": 0.75,
-      "actual": "Tài",
-      "correct": true,
-      "counted": true
     },
     {
-      "timestamp": 1773245465.8907623,
-      "last_update": 1773245465.8907628,
-      "session": "2458118",
-      "prediction": "Xỉu",
-      "confidence": 0.75,
-      "actual": null,
-      "correct": null,
-      "counted": false
-    },
-    {
-      "timestamp": 1773245817.0049589,
-      "last_update": 1773245817.0049596,
-      "session": "2458123",
-      "prediction": "Xỉu",
-      "confidence": 0.75,
-      "actual": null,
-      "correct": null,
-      "counted": false
-    }
-  ],
-  "789": [],
-  "68gb": [],
-  "lc79": [],
-  "sexy": [],
-  "last_update": 1773245817.0050712
-}
+      "timestamp": 1776074970.4105392,
+      "last_update": 1776074970.4105396,
+      "session": "2403037",
+      "prediction": 

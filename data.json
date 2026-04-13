@@ -45,6 +45,26 @@
       "duration_days": 1,
       "status": "used",
       "usedBy": "sang"
+    },
+    {
+      "code": "LK-3Z3IRRPM",
+      "type": "LK",
+      "price": 0,
+      "createdAt": 1776074099.4629674,
+      "expiresAt": null,
+      "duration_days": null,
+      "status": "used",
+      "usedBy": "sang"
+    },
+    {
+      "code": "LK-0S17VV7O",
+      "type": "LK",
+      "price": 0,
+      "createdAt": 1776074965.7952337,
+      "expiresAt": null,
+      "duration_days": null,
+      "status": "used",
+      "usedBy": "minhsang"
     }
   ],
   "users": {
@@ -70,17 +90,17 @@
     }
   },
   "active": {
-    "minhsang": {
-      "code": "LK-0ODOS0PK",
-      "type": "LK",
-      "expiresAt": 1773331254.5909696,
-      "activatedAt": 1773244857.9330287
-    },
     "sang": {
-      "code": "LK-BI5UGCTA",
+      "code": "LK-3Z3IRRPM",
       "type": "LK",
-      "expiresAt": 1775304829.3050113,
-      "activatedAt": 1775218429.3050137
+      "expiresAt": null,
+      "activatedAt": 1776074104.779796
+    },
+    "minhsang": {
+      "code": "LK-0S17VV7O",
+      "type": "LK",
+      "expiresAt": null,
+      "activatedAt": 1776074969.7064795
     }
   },
   "blocked_web_login": [],

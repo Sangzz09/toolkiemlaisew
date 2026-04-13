@@ -183,6 +183,11 @@ def api_protected(f):
     """
     @wraps(f)
     def decorated(*args, **kwargs):
+        # Bỏ qua bảo mật nếu đang test ở local
+        ip = request.remote_addr or ""
+        if (ip in ('127.0.0.1', '::1') or ip.startswith('192.168.') or ip.startswith('10.')) and os.getenv("FLASK_ENV") == "development":
+            return f(*args, **kwargs)
+
         # 1. Phải đăng nhập
         if "username" not in session:
             return jsonify({"ok": False, "error": "Vui lòng đăng nhập", "code": 401}), 401
@@ -206,6 +211,11 @@ def csrf_required(f):
     """Chỉ check session login + CSRF token (không check fingerprint)"""
     @wraps(f)
     def decorated(*args, **kwargs):
+        # Bỏ qua bảo mật nếu đang test ở local
+        ip = request.remote_addr or ""
+        if (ip in ('127.0.0.1', '::1') or ip.startswith('192.168.') or ip.startswith('10.')) and os.getenv("FLASK_ENV") == "development":
+            return f(*args, **kwargs)
+
         if "username" not in session:
             return jsonify({"ok": False, "error": "Vui lòng đăng nhập", "code": 401}), 401
         if check_rate_limit():
@@ -238,6 +248,11 @@ def register_security(app):
     # Middleware toàn cục: honeypot + headers bảo mật
     @app.before_request
     def global_security():
+        # Bỏ qua honeypot và fingerprint nếu test ở local
+        ip = request.remote_addr or ""
+        if (ip in ('127.0.0.1', '::1') or ip.startswith('192.168.') or ip.startswith('10.')) and os.getenv("FLASK_ENV") == "development":
+            return None
+
         # Honeypot check
         if check_honeypot():
             return jsonify(BLOCKED), 403
