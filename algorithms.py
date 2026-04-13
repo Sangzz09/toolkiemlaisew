@@ -2,7 +2,7 @@
 # ================== algorithms.py ==================
 # Tất cả thuật toán dự đoán Tài/Xỉu
 
-import os, math, random
+import os, math, random, time
 from collections import Counter
 import requests
 
@@ -70,23 +70,45 @@ def predict_sicbo_dice_position(h, recent_totals):
             return [8, 9, 10]
 
 
-def safe_json(url, timeout=8):
-    try:
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        }
-        r = requests.get(url, headers=headers, timeout=timeout, verify=False)
-        if r.status_code == 200: 
-            return r.json()
-    except requests.exceptions.Timeout:
-        print(f"⏱️ Timeout khi kết nối: {url}")
-        return None
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Lỗi kết nối: {str(e)}")
-        return None
-    except Exception as e:
-        print(f"❌ Lỗi không xác định: {str(e)}")
-        return None
+def safe_json(url, timeout=25):
+    import urllib3
+    import urllib.parse
+    urllib3.disable_warnings()
+    
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Accept": "application/json",
+        "Cache-Control": "no-cache"
+    }
+    
+    encoded_url = urllib.parse.quote(url, safe='')
+    
+    # Danh sách xoay vòng: Link gốc -> CodeTabs -> AllOrigins -> Corsproxy
+    targets = [
+        url, 
+        f"https://api.codetabs.com/v1/proxy?quest={encoded_url}",
+        f"https://api.allorigins.win/raw?url={encoded_url}",
+        f"https://corsproxy.io/?{encoded_url}"
+    ]
+    
+    for target in targets:
+        for attempt in range(2):  # Thử 2 lần cho mỗi proxy
+            try:
+                r = requests.get(target, headers=headers, timeout=timeout, verify=False)
+                if r.status_code == 200:
+                    try:
+                        return r.json()
+                    except Exception:
+                        break  # Dữ liệu trả về không phải JSON (rác), bỏ qua proxy này
+                else:
+                    break  # Bị lỗi (VD: 403, 500), chuyển sang thử proxy tiếp theo ngay
+            except requests.exceptions.Timeout:
+                print(f"⏱️ Timeout lần {attempt+1} từ: {target[:40]}...")
+                time.sleep(2)
+            except Exception as e:
+                print(f"❌ Lỗi từ {target[:40]}...: {str(e)}")
+                time.sleep(1)
+    
     return None
 
 
