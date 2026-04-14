@@ -1147,7 +1147,8 @@ def predict(game, ban="md5"):
         tong = 0
         
         if ban == "hu" or game == "hit-hu":
-            raw_response = safe_json(API_HIT_HU, timeout=8)
+            raw_response = safe_json(API_HIT_HU, timeout=20)
+            print("👉 DEBUG API Hit Hũ:", raw_response)  # In dữ liệu ra Log
             if not raw_response:
                 fake_phien = "---"
                 if PREDICTION_HISTORY["hit-hu"]:
@@ -1189,7 +1190,8 @@ def predict(game, ban="md5"):
             phieu_xiu = raw.get("phieu_Xiu", 0)
             lich_su_count = raw.get("lich_su_count", 0)
         else:
-            raw_response = safe_json(API_HIT)
+            raw_response = safe_json(API_HIT, timeout=20)
+            print("👉 DEBUG API Hit MD5:", raw_response) # In dữ liệu ra Log
             if not raw_response: return None
             
             raw = raw_response.get("data", raw_response) if isinstance(raw_response, dict) else raw_response
@@ -1474,7 +1476,7 @@ def predict(game, ban="md5"):
         if tong_xuc_xac is None:
             tong_xuc_xac = sum(xuc_xac) if xuc_xac and len(xuc_xac) == 3 else 0
         
-        ket = normalize(raw.get("Ket_qua") or raw.get("ket_qua"))
+        ket = normalize(raw.get("ket_qua_hien") or raw.get("Ket_qua") or raw.get("ket_qua"))
         if not ket and tong_xuc_xac > 0:
             ket = "Tài" if tong_xuc_xac > 10 else "Xỉu"
 
@@ -1509,7 +1511,9 @@ def predict(game, ban="md5"):
             
         # Lấy thêm thông tin hiển thị
         loai_cau = raw.get("loai_cau", "")
-        pattern = raw.get("pattern", "")
+        pattern = raw.get("pattern_14") or raw.get("pattern", "")
+        phieu_tai = raw.get("phieu_T", 0)
+        phieu_xiu = raw.get("phieu_X", 0)
             
         du, conf = analyze(list(h), "lc79", api_prediction=api_du, api_pattern=pattern)
         if api_conf is not None:
@@ -1528,6 +1532,8 @@ def predict(game, ban="md5"):
             "do_tin_cay": conf,
             "loai_cau": loai_cau,
             "pattern": pattern,
+            "phieu_tai": phieu_tai,
+            "phieu_xiu": phieu_xiu,
             "accuracy": f"{STATS['lc79']['correct']}/{STATS['lc79']['total']}" if STATS['lc79']['total'] > 0 else "0/0",
             "history": get_formatted_history("lc79")
         }
