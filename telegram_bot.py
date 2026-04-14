@@ -131,7 +131,7 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "━━━━━━━━━━━━━━━━━━━━\n"
             "👤 QUẢN LÝ USER:\n"
             "/tong - Thống kê tổng quan\n" +
-            "/doanhthu - Xem doanh thu\n" +
+            "/doanhthu [user] - Xem doanh thu\n" +
             "/band <user> - Khóa web login\n" +
             "/unband <user> - Mở khóa web\n" +
             "/ban_tg <id> - Chặn Telegram\n" +
@@ -348,7 +348,7 @@ async def cmd_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/ban_tg <user_id> - Chặn user Telegram\n"
         "/unban_tg <user_id> - Bỏ chặn user Telegram\n"
         "/xoa <username> - Xóa tài khoản user\n"
-        "/doanhthu - Thống kê doanh thu mua key\n"
+        "/doanhthu [user] - Thống kê doanh thu\n"
         "/tong - Thống kê tổng quan hệ thống\n"
         "/lichsu <game> - Lịch sử dự đoán từng game")
 
@@ -694,13 +694,45 @@ async def cmd_doanhthu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     db = load_db()
     transactions = db.get("transactions", [])
 
-    total_buy_key = sum(t.get("amount", 0) for t in transactions if t.get("type") == "buy_key" and t.get("status") == "completed")
-    buy_key_count = sum(1 for t in transactions if t.get("type") == "buy_key" and t.get("status") == "completed")
+    target_user = None
+    if context.args:
+        target_user = context.args[0].strip()
+        transactions = [t for t in transactions if t.get("username", "").lower() == target_user.lower()]
+        if not transactions:
+            await update.message.reply_text(f"❌ Không có dữ liệu doanh thu cho tài khoản: {target_user}")
+            return
+
+    now_ts = time.time()
+    vn_now = time.gmtime(now_ts + 7 * 3600)
+    
+    start_of_today = now_ts - (vn_now.tm_hour * 3600 + vn_now.tm_min * 60 + vn_now.tm_sec)
+    start_of_month = start_of_today - ((vn_now.tm_mday - 1) * 86400)
+
+    def calc_stats(start_time, end_time=None):
+        nap = 0
+        mua = 0
+        for t in transactions:
+            if t.get("status") == "completed":
+                tx_time = t.get("time", 0)
+                if tx_time >= start_time and (end_time is None or tx_time < end_time):
+                    if t.get("type") == "deposit":
+                        nap += t.get("amount", 0)
+                    elif t.get("type") == "buy_key":
+                        mua += t.get("amount", 0)
+        return nap, mua
+
+    nap_day, mua_day = calc_stats(start_of_today)
+    nap_month, mua_month = calc_stats(start_of_month)
+    nap_total, mua_total = calc_stats(0)
+
+    title = f"💰 DOANH THU: {target_user.upper()}" if target_user else "💰 THỐNG KÊ DOANH THU"
 
     msg = (
-        f"💰 THỐNG KÊ DOANH THU MUA KEY\n\n"
-        f"🔑 Số lượt mua key: {buy_key_count}\n"
-        f"💵 Tổng doanh thu: {total_buy_key:,}đ"
+        f"{title}\n"
+        f"━━━━━━━━━━━━━━━━━━\n\n"
+        f"📅 HÔM NAY:\n • Thu vào: {nap_day:,}đ\n • Mua key: {mua_day:,}đ\n\n"
+        f"🗓️ THÁNG NÀY:\n • Thu vào: {nap_month:,}đ\n • Mua key: {mua_month:,}đ\n\n"
+        f"🌍 TỔNG CỘNG:\n • Tổng thu: {nap_total:,}đ\n • Tổng mua: {mua_total:,}đ"
     )
 
     await update.message.reply_text(msg)
@@ -767,8 +799,7 @@ async def cmd_tong(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "%d/%m", time.localtime(active_key["expiresAt"]))
                 key_info = f" | 🔑 {expires}"
 
-        user_list += f"{idx}. {has_active}{is_blocked} {username}{key_info}\n"
-        user_list += f"   💰 {balance:,}đ | 🆔 {user_id} | 📅 {created}\n"
+        user_list += f"{idx}. {has_active}{is_blocked} {username} | 💰 {balance:,}đ{key_info}\n"
 
     header = f"""📊 THỐNG KÊ HỆ THỐNG
 
