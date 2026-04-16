@@ -1019,28 +1019,12 @@ def predict(game, ban="md5"):
 
     if game == "sun":
         # Sử dụng API mới
-        raw = safe_json(API_SUN, timeout=5)
+        raw = safe_json(API_SUN, timeout=8) # Tăng timeout để ổn định hơn
 
-        if not raw:
-            pattern_history = list(h)[-17:] if len(h) >= 17 else list(h)
-            pattern = "".join(["t" if x == "Tài" else "x" for x in pattern_history])
-            return {
-                "phien": "---",
-                "phien_du_doan": "---",
-                "ket_qua": "Chờ kết nối...",
-                "xuc_xac": [0, 0, 0],
-                "tong_xuc_xac": 0,
-                "du_doan_tiep_theo": random.choice(["Tài", "Xỉu"]),
-                "loai_cau": "Đang tải",
-                "thuat_toan": "Đang kết nối",
-                "so_lan_dung": STATS['sun']['correct'],
-                "so_lan_sai": STATS['sun']['total'] - STATS['sun']['correct'] if STATS['sun']['total'] > 0 else 0,
-                "pattern": pattern,
-                "tong_lich_su": len(pattern_history),
-                "id": "@minhsangdangcap",
-                "link_iframe": LINK_SUN,
-                "history": get_formatted_history("sun")
-            }
+        # Nếu API lỗi, raw sẽ là None. Gán nó thành dict rỗng để xử lý fallback.
+        # Các biến lấy từ `raw` sẽ là None, và logic sau đó sẽ tự động
+        # chuyển sang dùng thuật toán local trong hàm analyze().
+        raw = raw or {}
 
         # Lấy dữ liệu từ API (Format mới: xuc_xac_1, xuc_xac_2, tong, du_doan...)
         # API mới: {"phien": 289090, "du_doan": "Xỉu", "ket_qua": ..., "do_tin_cay": ...}
@@ -1074,10 +1058,10 @@ def predict(game, ban="md5"):
         so_dung = raw.get("so_lan_dung", 0)
         so_sai = raw.get("so_lan_sai", 0)
 
-        if not phien or phien == "---":
-            return None
+        # Kiểm tra xem API có hoạt động không
+        is_api_ok = bool(phien and phien != "---")
 
-        # **QUAN TRỌNG: Lưu kết quả NGAY từ API vào lịch sử**
+        # Lưu kết quả từ API vào lịch sử nếu có
         if ket and ket in ["Tài", "Xỉu"]:
             # Cập nhật stats cho phiên vừa kết thúc (gọi luôn để đảm bảo cập nhật)
             update_prediction_results("sun", phien, ket)
@@ -1101,7 +1085,12 @@ def predict(game, ban="md5"):
                 phien_tiep_theo = "---"
 
         # Luôn truyền dự đoán từ API vào analyze để ưu tiên
+        # Nếu api_du_doan là None, analyze() sẽ tự động chạy thuật toán local.
         du, conf = analyze(list(h), "sun", api_prediction=api_du_doan, api_pattern=api_pattern)
+        
+        # Nếu API không hoạt động, ghi rõ là đang dùng local fallback
+        if not is_api_ok:
+            thuat_toan = "Local Fallback AI"
         
         if api_conf is not None:
             conf = api_conf
@@ -1115,12 +1104,12 @@ def predict(game, ban="md5"):
         return {
             "phien": phien,
             "phien_du_doan": phien_tiep_theo,
-            "ket_qua": ket or "Đang chờ...",
+            "ket_qua": ket or ("Mất kết nối" if not is_api_ok else "Đang chờ..."),
             "xuc_xac": xuc_xac if xuc_xac else [0, 0, 0],
             "tong_xuc_xac": tong_xuc_xac if tong_xuc_xac else 0,
             "du_doan_tiep_theo": du,
             "do_tin_cay": conf,
-            "loai_cau": loai_cau if loai_cau else "Cầu thường",
+            "loai_cau": loai_cau if loai_cau else ("Đang phân tích..." if not is_api_ok else "Cầu thường"),
             "thuat_toan": thuat_toan if thuat_toan else "HYBRID+",
             "so_lan_dung": STATS['sun']['correct'],
             "so_lan_sai": STATS['sun']['total'] - STATS['sun']['correct'] if STATS['sun']['total'] > 0 else 0,

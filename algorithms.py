@@ -2,7 +2,7 @@
 # ================== algorithms.py ==================
 # Tất cả thuật toán dự đoán Tài/Xỉu
 
-import os, math, random, time
+import os, math, random, time, urllib.parse
 from collections import Counter
 import requests
 
@@ -71,44 +71,54 @@ def predict_sicbo_dice_position(h, recent_totals):
 
 
 def safe_json(url, timeout=25):
-    import urllib3
-    import urllib.parse
-    urllib3.disable_warnings()
-    
+    # Using free services like onrender.com for APIs can be unreliable due to services sleeping.
+    # Consider upgrading to a paid plan or using a keep-alive service for critical APIs.
+
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         "Accept": "application/json",
         "Cache-Control": "no-cache"
     }
-    
+
+    # URL encoding is only needed when the URL is a parameter value.
     encoded_url = urllib.parse.quote(url, safe='')
-    
-    # Danh sách xoay vòng: Link gốc -> CodeTabs -> AllOrigins -> Corsproxy
+
+    # List of targets: Original URL -> Proxies
+    # Note: corsproxy.io expects the raw URL.
     targets = [
-        url, 
+        url,
         f"https://api.codetabs.com/v1/proxy?quest={encoded_url}",
         f"https://api.allorigins.win/raw?url={encoded_url}",
-        f"https://corsproxy.io/?{encoded_url}"
+        f"https://corsproxy.io/?{url}"  # FIX: Use raw url for corsproxy.io
     ]
-    
+
     for target in targets:
-        for attempt in range(2):  # Thử 2 lần cho mỗi proxy
+        for attempt in range(2):  # Try each proxy twice
             try:
-                r = requests.get(target, headers=headers, timeout=timeout, verify=False)
-                if r.status_code == 200:
-                    try:
-                        return r.json()
-                    except Exception:
-                        break  # Dữ liệu trả về không phải JSON (rác), bỏ qua proxy này
-                else:
-                    break  # Bị lỗi (VD: 403, 500), chuyển sang thử proxy tiếp theo ngay
+                # It's highly recommended to remove `verify=False` in production.
+                # Disabling SSL verification is a security risk.
+                # Ensure the server has valid SSL certificates.
+                r = requests.get(target, headers=headers, timeout=timeout)  # REMOVED: verify=False
+                r.raise_for_status()  # Raise an exception for bad status codes (4xx or 5xx)
+
+                return r.json()
+
+            except requests.exceptions.JSONDecodeError:
+                print(f"⚠️ Dữ liệu không phải JSON từ: {target[:50]}...")
+                break  # Stop trying this proxy if it returns non-JSON data
             except requests.exceptions.Timeout:
-                print(f"⏱️ Timeout lần {attempt+1} từ: {target[:40]}...")
+                print(f"⏱️ Timeout lần {attempt+1} từ: {target[:50]}...")
                 time.sleep(2)
-            except Exception as e:
-                print(f"❌ Lỗi từ {target[:40]}...: {str(e)}")
+            except requests.exceptions.RequestException as e:
+                print(f"❌ Lỗi request từ {target[:50]}...: {e}")
+                # Break inner loop and try next proxy on client/server errors
+                if hasattr(e, 'response') and e.response and e.response.status_code >= 400 and e.response.status_code < 600:
+                    break
                 time.sleep(1)
-    
+            except Exception as e:
+                print(f"❌ Lỗi không xác định từ {target[:50]}...: {e}")
+                time.sleep(1)
+
     return None
 
 
