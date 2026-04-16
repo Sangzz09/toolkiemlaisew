@@ -7,10 +7,10 @@ from collections import Counter
 import requests
 
 # ================== API GAMES ==================
-API_SUN = "https://apisunlonv2.onrender.com/sunlon"
+API_SUN = "https://apisunw-wspro.onrender.com/api/taixiu/sunwin"
 LINK_SUN = "https://web.sunwin.live/?affId=Sunwin"
 API_HIT = "https://apihitclubmd5pro.onrender.com/"
-API_HIT_HU = "https://apihitclubhu.onrender.com/"
+API_HIT_HU = "https://apihitclubhupro.onrender.com/"
 API_SUM = ""  # SumClub đã bỏ
 LOGO_SUNWIN = "https://i.postimg.cc/q7ybsvSb/IMG-1615.jpg"
 LOGO_HITCLUB = "https://i.postimg.cc/66YHLSbG/IMG-1616.jpg"
@@ -28,7 +28,7 @@ LOGO_789 = "https://i.postimg.cc/43HWjS37/789.webp"
 API_68GB = "https://six8gbsew.onrender.com/all"
 API_68GB_XANH = "https://crack-production-7f42.up.railway.app/api/68gb"
 LOGO_68GB = "https://i.postimg.cc/zDQVG2DG/OIP.webp"
-API_LC79 = "https://apilc79hu-4b50.onrender.com/"
+API_LC79 = "https://apilc79md5sieucapprosew.onrender.com/"
 LOGO_LC79 = "https://i.postimg.cc/vTSzPJnm/lc79.webp"
 
 # Thuật toán dự đoán vị xúc xắc cho Sicbo
