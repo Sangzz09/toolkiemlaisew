@@ -1027,8 +1027,8 @@ def predict(game, ban="md5"):
         raw = raw or {}
 
         # Lấy dữ liệu từ API (Format mới: xuc_xac_1, xuc_xac_2, tong, du_doan...)
-        # API mới: {"phien": 289090, "du_doan": "Xỉu", "ket_qua": ..., "do_tin_cay": ...}
-        phien = str(raw.get("phien") or raw.get("Phien") or raw.get("phien_hien_tai") or "---")
+        # API mới: {"phien": "3068302", "xuc_xac": [3, 3, 6], "phien_hien_tai": "3068303", "du_doan": "Xỉu", "do_tin_cay": "80%", "loai_cau": "bệt", "pattern": "XTTTXTXTTTXXXXTXXXXT", "dev": "@sewdangcap"}
+        phien = str(raw.get("phien") or raw.get("Phien") or "---")
         ket = normalize(raw.get("ket_qua") or raw.get("Ket_qua"))
         api_du_doan = normalize(raw.get("du_doan"))
         api_pattern = raw.get("pattern", "")
@@ -1052,6 +1052,14 @@ def predict(game, ban="md5"):
             xuc_xac = [x1, x2, x3]
         else:
             xuc_xac = raw.get("xuc_xac", [0, 0, 0])
+            if not isinstance(xuc_xac, list):
+                xuc_xac = [0, 0, 0]
+
+        if not tong_xuc_xac and sum(xuc_xac) > 0:
+            tong_xuc_xac = sum(xuc_xac)
+            
+        if not ket and tong_xuc_xac:
+            ket = "Tài" if tong_xuc_xac >= 11 else "Xỉu"
 
         loai_cau = raw.get("loai_cau", "")
         thuat_toan = raw.get("thuat_toan", "")
@@ -1075,7 +1083,7 @@ def predict(game, ban="md5"):
                 print(f"✅ SunWin #{phien}: Lưu kết quả - {ket} | Xúc xắc: {xuc_xac} | Tổng: {tong_xuc_xac}")
 
         # Dự đoán cho phiên tiếp theo (API phiên + 1)
-        phien_tiep_theo = raw.get("phien_du_doan")
+        phien_tiep_theo = raw.get("phien_hien_tai") or raw.get("phien_du_doan")
         if phien_tiep_theo:
             phien_tiep_theo = str(phien_tiep_theo)
         else:
@@ -1115,7 +1123,7 @@ def predict(game, ban="md5"):
             "so_lan_sai": STATS['sun']['total'] - STATS['sun']['correct'] if STATS['sun']['total'] > 0 else 0,
             "pattern": pattern,
             "tong_lich_su": len(pattern_history),
-            "id": "@minhsangdangcap",
+            "id": raw.get("dev") or "@minhsangdangcap",
             "link_iframe": LINK_SUN,
             "history": get_formatted_history("sun")
         }
