@@ -1209,6 +1209,7 @@ def ping():
 
 
 @bp.route("/protect.js")
+@bp.route("/static/protect.js")
 def serve_protect_js():
     """Serve protect.js từ thư mục gốc project"""
     import os

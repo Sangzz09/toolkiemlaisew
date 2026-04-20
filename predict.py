@@ -1124,7 +1124,7 @@ def predict(game, ban="md5"):
             "pattern": pattern,
             "tong_lich_su": len(pattern_history),
             "id": raw.get("dev") or "@minhsangdangcap",
-            "link_iframe": LINK_SUN,
+            "link_iframe": "",
             "history": get_formatted_history("sun")
         }
 
@@ -1808,6 +1808,6 @@ def predict(game, ban="md5"):
             "so_lan_sai": STATS['sicbo']['total'] - STATS['sicbo']['correct'] if STATS['sicbo']['total'] > 0 else 0,
             "do_tin_cay": conf_percent,
             "id": "@minhsangdangcap",
-            "link_iframe": LINK_SICBO,
+            "link_iframe": "",
             "history": get_formatted_history("sicbo")
         }
