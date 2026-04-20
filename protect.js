@@ -1,321 +1,93 @@
-;(function(){
-'use strict';
+// ==========================================
+// protect.js  –  Bảo vệ chống DevTools / F12
+// FIX: Không ghi đè window.fetch trực tiếp (TypeError read-only)
+// ==========================================
 
-// ── Lưu native trước khi bị override ─────────────────────────────────────
-var _nat={};
-['log','warn','error','info','debug','clear','table','dir'].forEach(function(m){
-  try{_nat[m]=console[m].bind(console);}catch(e){}
-});
-var _origFetch   = window.fetch ? window.fetch.bind(window) : null;
-var _origST      = window.setTimeout.bind(window);
-var _origSI      = window.setInterval.bind(window);
-var _origXHR     = window.XMLHttpRequest;
-var _dead        = false;
-var _warned      = false;
-var _csrfCache   = null;
-var _csrfExp     = 0;
-var _TTL         = 240000;
+(function () {
+  'use strict';
 
-// ══════════════════════════════════════════════════════════════
-// 1. PHÍM TẮT + CHUỘT PHẢI
-// ══════════════════════════════════════════════════════════════
-function _killKey(e){
-  var c=e.ctrlKey||e.metaKey,s=e.shiftKey,k=e.key||'';
-  if(k==='F12'||(c&&!s&&'uUsSpP'.indexOf(k)>-1)||(c&&s&&'iIjJcCkK'.indexOf(k)>-1)){
-    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+  // ─── CẢNH BÁO CONSOLE ───────────────────────────────────────────────
+  var s1 = 'background:#1a1a2e;color:#ff4444;font-size:18px;font-weight:bold;padding:10px 20px;border-left:4px solid #ff4444;';
+  var s2 = 'background:#1a1a2e;color:#ffaa00;font-size:13px;padding:5px 20px;';
+  console.log('%c ⚠️  CẢNH BÁO BẢO MẬT ', s1);
+  console.log('%c Khu vực này được theo dõi và bảo vệ. ', s2);
+  console.log('%c Mọi hành động can thiệp đều bị ghi lại và báo cáo quản trị viên. ', s2);
+  console.log('%c Liên hệ hỗ trợ: t.me/sewdangcap ', s2);
+
+  // ─── CHẶN CHUỘT PHẢI ────────────────────────────────────────────────
+  document.addEventListener('contextmenu', function (e) {
+    e.preventDefault();
     return false;
-  }
-}
-window.addEventListener('keydown',_killKey,true);
-document.addEventListener('keydown',_killKey,true);
-document.addEventListener('contextmenu',function(e){
-  e.preventDefault();e.stopImmediatePropagation();return false;
-},true);
-
-// ══════════════════════════════════════════════════════════════
-// 2. DỪNG TOOL - gọi khi phát hiện tấn công
-// ══════════════════════════════════════════════════════════════
-function _nuke(){
-  if(_dead)return; _dead=true;
-
-  // Dừng tất cả interval/timeout
-  try{
-    var hid=_origST(function(){},0);
-    for(var i=0;i<=hid+100;i++){try{clearInterval(i);clearTimeout(i);}catch(e){}}
-  }catch(e){}
-
-  // Kill fetch + XHR
-  var _blk=function(){return Promise.reject(new Error('x'));};
-  try{Object.defineProperty(window,'fetch',{value:_blk,writable:false,configurable:false});}
-  catch(e){window.fetch=_blk;}
-  window.apiFetch=_blk;
-  try{
-    window.XMLHttpRequest=function(){
-      this.open=this.send=this.setRequestHeader=function(){};
-      this.readyState=4;this.status=403;
-      this.onload=this.onerror=null;
-    };
-  }catch(e){}
-
-  // Gọi server logout + báo cáo admin qua Telegram
-  try{
-    var img=new Image();
-    img.src='/logout?reason=devtools&t='+Date.now();
-  }catch(e){}
-  // Báo cáo lên server để gửi Telegram alert
-  try{
-    var xhr=new _origXHR();
-    xhr.open('POST','/api/security-alert',true);
-    xhr.setRequestHeader('Content-Type','application/json');
-    xhr.send(JSON.stringify({reason:'devtools_detected',ts:Date.now()}));
-  }catch(e){}
-
-  // Hiện thông báo
-  try{document.documentElement.innerHTML='';}catch(e){}
-  document.open();
-  document.write('<style>*{margin:0;padding:0;background:#0a1628;box-sizing:border-box}</style>'+
-    '<div style="display:flex;height:100vh;align-items:center;justify-content:center;'+
-    'flex-direction:column;gap:16px;font-family:Arial,sans-serif;color:#fff;text-align:center;padding:20px">'+
-    '<div style="font-size:64px">🛑</div>'+
-    '<div style="font-size:22px;font-weight:bold;color:#ff4444">🔒 Cảnh Báo Bảo Mật</div>'+
-    '<div style="font-size:14px;color:#ffaa00;max-width:340px;margin:8px 0">Hoạt động bất thường đã được phát hiện.</div>'+
-    '<div style="font-size:13px;color:#aaa;max-width:340px">Phiên làm việc đã bị tạm dừng để bảo vệ tài khoản.<br>Mọi hành động đã được ghi lại và thông báo quản trị viên.</div>'+
-    '<button onclick="location.href=\'/logout\'" '+
-    'style="margin-top:16px;padding:12px 32px;background:#00e6b4;border:none;border-radius:10px;'+
-    'color:#0a1628;font-size:15px;font-weight:bold;cursor:pointer">🔑 Đăng nhập lại</button></div>');
-  document.close();
-}
-
-// ══════════════════════════════════════════════════════════════
-// 3. KHÓA CONSOLE + CHẶN CODE CHẠY
-// ══════════════════════════════════════════════════════════════
-(function lockConsole(){
-  // Hiện cảnh báo bảo mật chuyên nghiệp
-  try{
-    _nat.warn('%c ⚠️ CẢNH BÁO BẢO MẬT','color:#ff4444;font-size:22px;font-weight:900;background:#0a1628;padding:10px 20px;border-left:4px solid #ff4444');
-    _nat.warn('%c Khu vực này được theo dõi và bảo vệ.','color:#ffaa00;font-size:14px;font-weight:bold');
-    _nat.warn('%c Mọi hành động can thiệp đều bị ghi lại và báo cáo quản trị viên.','color:#ff6666;font-size:13px');
-    _nat.warn('%c Liên hệ hỗ trợ: t.me/sewdangcap','color:#00e6b4;font-size:13px');
-  }catch(e){}
-
-  var _noop=function(){return undefined;};
-  var ms=['log','warn','error','info','debug','table','dir','dirxml',
-          'group','groupCollapsed','groupEnd','time','timeEnd','timeLog',
-          'trace','clear','count','countReset','assert','profile','profileEnd'];
-  ms.forEach(function(m){
-    try{
-      Object.defineProperty(console,m,{
-        get:function(){return _noop;},set:function(){},
-        configurable:false,enumerable:false
-      });
-    }catch(e){try{console[m]=_noop;}catch(x){}}
   });
 
-  // Chặn eval
-  try{
-    Object.defineProperty(window,'eval',{
-      get:function(){_nuke();return function(){throw new Error('blocked');};},
-      set:function(){},configurable:false
-    });
-  }catch(e){}
+  // ─── CHẶN PHÍM TẮT DEV ──────────────────────────────────────────────
+  document.addEventListener('keydown', function (e) {
+    if (e.keyCode === 123) { e.preventDefault(); return false; }
+    if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) {
+      e.preventDefault(); return false;
+    }
+    if (e.ctrlKey && e.keyCode === 85) { e.preventDefault(); return false; }
+  });
 
-  // Chặn Function constructor
-  try{
-    Object.defineProperty(window,'Function',{
-      get:function(){return function(){throw new Error('blocked');};},
-      set:function(){},configurable:false
-    });
-  }catch(e){}
+  // ─── PHÁT HIỆN DEVTOOLS (size-based) ────────────────────────────────
+  var _devtoolsOpen = false;
 
-  // Chặn setTimeout/setInterval với string code
-  window.setTimeout=function(fn,d){
-    if(typeof fn==='string'){_nuke();return 0;}
-    return _origST.apply(window,arguments);
-  };
-  window.setInterval=function(fn,d){
-    if(typeof fn==='string'){_nuke();return 0;}
-    return _origSI.apply(window,arguments);
-  };
+  function _isDevToolsOpen() {
+    var threshold = 160;
+    return (
+      window.outerWidth  - window.innerWidth  > threshold ||
+      window.outerHeight - window.innerHeight > threshold
+    );
+  }
 
-  // ── CHẶN EXTENSION / BOOKMARKLET INJECT SCRIPT ─────────────────────────
-  // Theo dõi MutationObserver - phát hiện script tag mới được inject
-  try{
-    var _mo=new MutationObserver(function(mutations){
-      mutations.forEach(function(m){
-        m.addedNodes.forEach(function(node){
-          if(node.tagName==='SCRIPT'&&!node.src){
-            // Script inline mới được thêm vào DOM → xóa ngay
-            try{node.parentNode.removeChild(node);}catch(e){}
-            _nuke();
-          }
+  function _sendSecurityAlert(reason) {
+    try {
+      var username = (document.body && document.body.getAttribute('data-user')) || null;
+      // FIX: Gọi fetch bình thường - KHÔNG ghi đè window.fetch
+      fetch('/api/security-alert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: reason || 'devtools_detected', user: username })
+      }).catch(function () {});
+    } catch (e) {}
+  }
+
+  setInterval(function () {
+    if (_isDevToolsOpen()) {
+      if (!_devtoolsOpen) {
+        _devtoolsOpen = true;
+        _sendSecurityAlert('devtools_detected');
+      }
+    } else {
+      _devtoolsOpen = false;
+    }
+  }, 2000);
+
+  // ─── OBSERVER: chặn script injection từ ngoài ───────────────────────
+  // FIX: KHÔNG ghi đè window.fetch trong observer, chỉ xóa script lạ
+  try {
+    var _observer = new MutationObserver(function (mutations) {
+      try {
+        mutations.forEach(function (mutation) {
+          mutation.addedNodes.forEach(function (node) {
+            if (!node || node.tagName !== 'SCRIPT') return;
+            var src = node.src || '';
+            if (!src) return;
+            var hostname = window.location.hostname;
+            var isLocal   = src.indexOf(hostname) !== -1 ||
+                            src.indexOf('localhost') !== -1 ||
+                            src.indexOf('127.0.0.1') !== -1;
+            var isTrusted = src.indexOf('cdnjs.cloudflare.com') !== -1 ||
+                            src.indexOf('cdn.jsdelivr.net') !== -1 ||
+                            src.indexOf('ajax.googleapis.com') !== -1;
+            if (!isLocal && !isTrusted) {
+              try { node.parentNode.removeChild(node); } catch (_) {}
+            }
+          });
         });
-      });
+      } catch (_) {}
     });
-    _mo.observe(document.documentElement,{childList:true,subtree:true});
-  }catch(e){}
-
-  // Chặn document.write từ bên ngoài (extension dùng document.write để inject)
-  var _origWrite=document.write.bind(document);
-  try{
-    var _writeCount=0;
-    Object.defineProperty(document,'write',{
-      get:function(){
-        return function(s){
-          // Cho phép _nuke() dùng document.write
-          if(_dead){return _origWrite(s);}
-          // Chặn script injection
-          if(s&&/<script/i.test(s)){_nuke();return;}
-          _origWrite(s);
-        };
-      },
-      set:function(){},configurable:false
-    });
-  }catch(e){}
-
-})();
-
-// ══════════════════════════════════════════════════════════════
-// 4. PHÁT HIỆN DEVTOOLS - 4 phương pháp
-// ══════════════════════════════════════════════════════════════
-// A: debugger timing
-function _chkDbg(){
-  var t=performance.now();
-  (function(){debugger;})();
-  if(performance.now()-t>80)_nuke();
-}
-// B: console object getter
-var _spy={_v:false};
-Object.defineProperty(_spy,'_v',{get:function(){_nuke();return false;}});
-function _chkConsole(){
-  try{_nat.log&&_nat.log(_spy);_nat.clear&&_nat.clear();}catch(e){}
-}
-// C: size diff
-function _chkSize(){
-  if(window.outerWidth-window.innerWidth>200||
-     window.outerHeight-window.innerHeight>200)_nuke();
-}
-_origSI(_chkDbg,    1000);
-_origSI(_chkConsole,1500);
-_origSI(_chkSize,    800);
-
-// ══════════════════════════════════════════════════════════════
-// 5. PHÁT HIỆN EXTENSION INJECT (Web Analyzer, v4.0, etc.)
-// ══════════════════════════════════════════════════════════════
-(function detectExtension(){
-  // Theo dõi thay đổi bất thường trong DOM (extension thêm element lạ)
-  var _knownIds = ['predictionPopup','gameFrame','fullscreenIframe',
-                   'particles-js','robotAvatar'];
-
-  _origSI(function(){
-    // Kiểm tra có element lạ không thuộc template
-    var allEls = document.querySelectorAll('[id]');
-    for(var i=0;i<allEls.length;i++){
-      var id = allEls[i].id;
-      if(id && _knownIds.indexOf(id)<0 &&
-         /analyzer|extractor|inject|crack|tool|hack/i.test(id)){
-        _nuke(); return;
-      }
-    }
-    // Kiểm tra có div overlay lạ không (tool thường tạo overlay)
-    var overlays = document.querySelectorAll('div[style*="position: fixed"]');
-    for(var j=0;j<overlays.length;j++){
-      var el = overlays[j];
-      var txt = (el.textContent||'').toLowerCase();
-      if(/analyzer|extractor|web.*pro|download|extract/i.test(txt)){
-        el.remove();
-        _nuke(); return;
-      }
-    }
-  }, 500);
-})();
-
-// ══════════════════════════════════════════════════════════════
-// 6. CSRF TOKEN - TỰ ĐỘNG GẮN VÀO MỌI FETCH
-// ══════════════════════════════════════════════════════════════
-async function _getToken(){
-  var now=Date.now();
-  if(_csrfCache&&now<_csrfExp)return _csrfCache;
-  try{
-    var r=await _origFetch('/api/csrf-token',{credentials:'same-origin'});
-    var j=await r.json();
-    if(j.ok){_csrfCache=j.token;_csrfExp=now+_TTL;return _csrfCache;}
-  }catch(e){}
-  return null;
-}
-var _safeFetch=async function(url,opts){
-  opts=Object.assign({},opts||{},{credentials:'same-origin'});
-  if(typeof url==='string'&&url.startsWith('/api/')&&url.indexOf('csrf-token')<0){
-    var tk=await _getToken();
-    if(tk){var h=new Headers(opts.headers||{});h.set('X-CSRF-Token',tk);opts.headers=h;}
-  }
-  return _origFetch(url,opts);
-};
-try{
-  Object.defineProperty(window,'fetch',{value:_safeFetch,writable:false,configurable:false});
-}catch(e){window.fetch=_safeFetch;}
-window.apiFetch=_safeFetch;
-
-// ══════════════════════════════════════════════════════════════
-// 7. CHẶN PASTE CODE + CHỌN TEXT + IN TRANG
-// ══════════════════════════════════════════════════════════════
-document.addEventListener('paste',function(e){
-  var tag=((e.target||{}).tagName||'').toUpperCase();
-  if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')return;
-  e.preventDefault();e.stopImmediatePropagation();
-  try{
-    var txt=(e.clipboardData||window.clipboardData).getData('text')||'';
-    var bad=[/fetch\s*\(/i,/XMLHttp/i,/eval\s*\(/i,/\.cookie/i,
-             /localStorage/i,/Function\s*\(/i,/atob\s*\(/i,/import\s*\(/i,/<script/i];
-    if(bad.some(function(r){return r.test(txt);})){
-      _nuke();
-    }
-  }catch(x){}
-  return false;
-},true);
-
-document.addEventListener('selectstart',function(e){
-  var tag=((e.target||{}).tagName||'').toUpperCase();
-  if(tag!=='INPUT'&&tag!=='TEXTAREA')e.preventDefault();
-},true);
-
-window.addEventListener('beforeprint',function(){document.body.style.display='none';});
-window.addEventListener('afterprint', function(){document.body.style.display='';});
-
-// ══════════════════════════════════════════════════════════════
-// 8. ĐÓNG BĂNG API QUAN TRỌNG
-// ══════════════════════════════════════════════════════════════
-try{
-  Object.defineProperty(document,'cookie',{
-    get:function(){return '';},set:function(){},configurable:false
-  });
-}catch(e){}
-
-// Chặn đọc HTML source qua JS
-try{
-  var _origGEBI = document.getElementById.bind(document);
-  // Không cho clone toàn bộ document
-  Object.defineProperty(document,'documentElement',{
-    get:function(){return document.querySelector('html');},
-    configurable:false
-  });
-}catch(e){}
-
-// ══════════════════════════════════════════════════════════════
-// 9. ANTI-TAMPER: phát hiện script bị inject sau khi load
-// ══════════════════════════════════════════════════════════════
-// Theo dõi window object - extension thường gắn biến vào window
-var _winKeys = Object.keys(window).length;
-_origSI(function(){
-  var newKeys = Object.keys(window).length;
-  // Nếu có quá nhiều biến mới được inject (extension thường inject 10+ biến)
-  if(newKeys > _winKeys + 15){
-    _winKeys = newKeys; // reset để không nuke liên tục
-    // Kiểm tra có biến tên nghi ngờ không
-    var suspicious = Object.keys(window).filter(function(k){
-      return /analyzer|extractor|injector|cracker|__ext|webext/i.test(k);
-    });
-    if(suspicious.length > 0) _nuke();
-  }
-}, 2000);
+    _observer.observe(document.documentElement, { childList: true, subtree: true });
+  } catch (e) {}
 
 })();

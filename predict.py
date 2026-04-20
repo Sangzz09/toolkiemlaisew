@@ -266,9 +266,9 @@ def record_prediction(game, session_id, prediction, confidence, actual_result=No
                 break
 
         if existing_record:
-            # Cập nhật dự đoán mới nhất nếu chưa có kết quả (Fix lỗi hiển thị sai lịch sử)
+            # FIX: Cập nhật cả khi confidence thay đổi dù prediction giống
             if not existing_record.get("counted") and actual_result is None:
-                if existing_record["prediction"] != prediction:
+                if existing_record["prediction"] != prediction or existing_record.get("confidence") != confidence:
                     existing_record["prediction"] = prediction
                     existing_record["confidence"] = confidence
                     existing_record["last_update"] = time.time()
@@ -409,7 +409,7 @@ def ensemble_predict_luck8(h, totals):
 
     # 6. Pattern xen kẽ
     if len(h) >= 3 and h[-1] != h[-2] and h[-2] != h[-3]:
-        return "Xỉu" if last == "Tài" else "Tài", 0.60
+        return ("Xỉu" if last == "Tài" else "Tài"), 0.60
 
     # 7. Mặc định: Ngược với kết quả cuối
     return "Xỉu" if last == "Tài" else "Tài", 0.56
@@ -1024,6 +1024,13 @@ def predict(game, ban="md5"):
         # Nếu API lỗi, raw sẽ là None. Gán nó thành dict rỗng để xử lý fallback.
         # Các biến lấy từ `raw` sẽ là None, và logic sau đó sẽ tự động
         # chuyển sang dùng thuật toán local trong hàm analyze().
+        if isinstance(raw, dict) and "data" in raw:
+            raw = raw["data"]
+        if isinstance(raw, list):
+            raw = raw[0] if len(raw) > 0 else {}
+        if not isinstance(raw, dict):
+            raw = {}
+        
         raw = raw or {}
 
         # Lấy dữ liệu từ API (Format mới: xuc_xac_1, xuc_xac_2, tong, du_doan...)
@@ -1044,16 +1051,23 @@ def predict(game, ban="md5"):
 
         # Lấy thông tin xúc xắc và tổng
         tong_xuc_xac = raw.get("Tong") or raw.get("tong")
+        try:
+            tong_xuc_xac = int(tong_xuc_xac) if tong_xuc_xac else 0
+        except (ValueError, TypeError):
+            tong_xuc_xac = 0
         
         x1 = raw.get("Xuc_xac_1") or raw.get("xuc_xac_1")
         x2 = raw.get("Xuc_xac_2") or raw.get("xuc_xac_2")
         x3 = raw.get("Xuc_xac_3") or raw.get("xuc_xac_3")
-        if x1 is not None and x2 is not None and x3 is not None:
-            xuc_xac = [x1, x2, x3]
-        else:
-            xuc_xac = raw.get("xuc_xac", [0, 0, 0])
-            if not isinstance(xuc_xac, list):
-                xuc_xac = [0, 0, 0]
+        
+        try:
+            if x1 is not None and x2 is not None and x3 is not None:
+                xuc_xac = [int(x1), int(x2), int(x3)]
+            else:
+                xuc_xac_raw = raw.get("xuc_xac", [0, 0, 0])
+                xuc_xac = [int(x) for x in xuc_xac_raw] if isinstance(xuc_xac_raw, list) else [0, 0, 0]
+        except (ValueError, TypeError):
+            xuc_xac = [0, 0, 0]
 
         if not tong_xuc_xac and sum(xuc_xac) > 0:
             tong_xuc_xac = sum(xuc_xac)
@@ -1105,9 +1119,18 @@ def predict(game, ban="md5"):
             
         record_prediction("sun", phien_tiep_theo, du, conf)
 
-        # Tạo pattern từ lịch sử (17 phiên gần nhất)
-        pattern_history = list(h)[-17:] if len(h) >= 17 else list(h)
-        pattern = "".join(["t" if x == "Tài" else "x" for x in pattern_history])
+        # Ưu tiên lấy pattern từ API, nếu không có thì tạo từ lịch sử
+        if api_pattern:
+            pattern = api_pattern
+            pattern_history = list(api_pattern)  # Dùng độ dài pattern của API để tính tổng lịch sử
+        else:
+            pattern_history = list(h)[-17:] if len(h) >= 17 else list(h)
+            pattern = "".join(["t" if x == "Tài" else "x" for x in pattern_history])
+
+        try:
+            conf_percent = int(conf * 100) if conf <= 1 else int(conf)
+        except:
+            conf_percent = 80
 
         return {
             "phien": phien,
@@ -1115,8 +1138,8 @@ def predict(game, ban="md5"):
             "ket_qua": ket or ("Mất kết nối" if not is_api_ok else "Đang chờ..."),
             "xuc_xac": xuc_xac if xuc_xac else [0, 0, 0],
             "tong_xuc_xac": tong_xuc_xac if tong_xuc_xac else 0,
-            "du_doan_tiep_theo": du,
-            "do_tin_cay": conf,
+            "du_doan": du,
+            "do_tin_cay": conf_percent,
             "loai_cau": loai_cau if loai_cau else ("Đang phân tích..." if not is_api_ok else "Cầu thường"),
             "thuat_toan": thuat_toan if thuat_toan else "HYBRID+",
             "so_lan_dung": STATS['sun']['correct'],
@@ -1167,6 +1190,11 @@ def predict(game, ban="md5"):
                 }
             raw = raw_response.get("data", raw_response) if isinstance(raw_response, dict) else raw_response
             
+            if isinstance(raw, list):
+                raw = raw[0] if len(raw) > 0 else {}
+            elif not isinstance(raw, dict):
+                raw = {}
+                
             phien_hien_tai = str(raw.get("phien_hien_tai", "")).replace("#", "").strip()
             phien = phien_hien_tai if phien_hien_tai else "---"
             ket = None  # API hũ không có kết quả phiên trước
@@ -1193,6 +1221,11 @@ def predict(game, ban="md5"):
             
             raw = raw_response.get("data", raw_response) if isinstance(raw_response, dict) else raw_response
             
+            if isinstance(raw, list):
+                raw = raw[0] if len(raw) > 0 else {}
+            elif not isinstance(raw, dict):
+                raw = {}
+                
             phien = str(raw.get("phien") or raw.get("Phien", "---"))
             ket = normalize(raw.get("ket_qua") or raw.get("Ket_qua"))
             
@@ -1251,7 +1284,7 @@ def predict(game, ban="md5"):
             "xuc_xac": xuc_xac,
             "tong_xuc_xac": tong,
             "du_doan": du,
-            "do_tin_cay": conf,
+            "do_tin_cay": int(conf * 100) if conf <= 1 else int(conf),
             "ban": ban,
             "accuracy": f"{STATS[game]['correct']}/{STATS[game]['total']}" if STATS[game]['total'] > 0 else "0/0",
             "history": get_formatted_history(game)
@@ -1280,12 +1313,28 @@ def predict(game, ban="md5"):
         return response
 
     if game == "789":
-        raw = safe_json(API_789)
-        if not raw: return None
+        raw_res = safe_json(API_789)
+        if not raw_res: return None
         
+        # Tự động gỡ bọc nếu API trả về dạng {"data": {...}}
+        raw = raw_res.get("data", raw_res) if isinstance(raw_res, dict) and "data" in raw_res else raw_res
+
         # New JSON format support
-        phien = raw.get("phien")
-        ket = normalize(raw.get("ket_qua_hien_tai") or raw.get("ket_qua"))
+        phien = str(raw.get("Phien") or raw.get("phien") or "---")
+        ket = normalize(raw.get("Ket_qua") or raw.get("ket_qua_hien_tai") or raw.get("ket_qua"))
+
+        x1 = raw.get("Xuc_xac_1") or raw.get("xuc_xac_1")
+        x2 = raw.get("Xuc_xac_2") or raw.get("xuc_xac_2")
+        x3 = raw.get("Xuc_xac_3") or raw.get("xuc_xac_3")
+        try:
+            if x1 is not None and x2 is not None and x3 is not None:
+                xuc_xac = [int(x1), int(x2), int(x3)]
+            else:
+                xuc_xac = [0, 0, 0]
+        except (ValueError, TypeError):
+            xuc_xac = [0, 0, 0]
+            
+        tong_xuc_xac = raw.get("Tong") or raw.get("tong") or 0
 
         # Lưu kết quả NGAY từ API
         if ket and ket in ["Tài", "Xỉu"]:
@@ -1296,15 +1345,28 @@ def predict(game, ban="md5"):
                 analyze_and_save_cau_patterns(list(h), "789")
 
         # Dự đoán cho phiên tiếp theo
-        phien_tiep_theo = str(raw.get("phien_dudoan")) if raw.get("phien_dudoan") else (str(int(phien) + 1) if phien else phien)
-        api_du = normalize(raw.get("du_doan_van_sau") or raw.get("du_doan"))
+        phien_tiep_theo_api = raw.get("phien_hien_tai") or raw.get("phien_dudoan")
+        if phien_tiep_theo_api:
+            phien_tiep_theo = str(phien_tiep_theo_api)
+        else:
+            phien_tiep_theo = str(int(phien) + 1) if phien and phien.isdigit() else phien
+            
+        api_du = normalize(raw.get("du_doan") or raw.get("du_doan_van_sau"))
         
         # Parse confidence
         raw_conf = raw.get("do_tin_cay")
         api_conf = None
-        if raw_conf == "Cao": api_conf = 0.85
-        elif raw_conf == "Trung bình": api_conf = 0.65
-        elif raw_conf == "Thấp": api_conf = 0.50
+        try:
+            if isinstance(raw_conf, (int, float)):
+                api_conf = float(raw_conf) / 100 if float(raw_conf) > 1 else float(raw_conf)
+            elif isinstance(raw_conf, str):
+                if raw_conf == "Cao": api_conf = 0.85
+                elif raw_conf == "Trung bình": api_conf = 0.65
+                elif raw_conf == "Thấp": api_conf = 0.50
+                else:
+                    conf_val = float(str(raw_conf).replace('%', '').replace(',', '.'))
+                    api_conf = conf_val / 100 if conf_val > 1 else conf_val
+        except: pass
 
         # Luôn truyền API prediction vào analyze
         du, conf = analyze(list(h), "789", api_prediction=api_du)
@@ -1314,12 +1376,29 @@ def predict(game, ban="md5"):
             
         record_prediction("789", phien_tiep_theo, du, conf)
 
+        # Lấy mảng vị từ API và chuyển thành chuỗi
+        vi_raw = raw.get("dudoan_vi", [])
+        if isinstance(vi_raw, str):
+            vi_raw = vi_raw.replace('[', '').replace(']', '').split(',')
+        vi_arr = [str(x).strip() for x in vi_raw] if vi_raw else []
+        vi_str = " - ".join(vi_arr) if vi_arr else ""
+
         return {
             "game": "789Club",
             "phien": phien,
+            "phien_du_doan": phien_tiep_theo,
             "ket_qua": ket or "Đang chờ...",
+            "xuc_xac": xuc_xac,
+            "tong_xuc_xac": tong_xuc_xac,
             "du_doan": du,
-            "do_tin_cay": conf,
+            "vi_du_doan": vi_arr,
+            "loai_cau": f"Vị: {vi_str}" if vi_str else "Cầu thường",
+            "pattern": f"Bắt Vị: {vi_str}" if vi_str else "",
+            "thuat_toan": f"Bắt Vị: {vi_str}" if vi_str else "SICBO AI",
+            "ghi_chu": f"Vị: {vi_str}" if vi_str else "",
+            "so_lan_dung": STATS['789']['correct'],
+            "so_lan_sai": STATS['789']['total'] - STATS['789']['correct'] if STATS['789']['total'] > 0 else 0,
+            "do_tin_cay": int(conf * 100) if conf <= 1 else int(conf),
             "accuracy": f"{STATS['789']['correct']}/{STATS['789']['total']}" if STATS['789']['total'] > 0 else "0/0",
             "history": get_formatted_history("789")
         }
@@ -1369,7 +1448,7 @@ def predict(game, ban="md5"):
                 "xuc_xac": [0, 0, 0],
                 "tong_xuc_xac": 0,
                 "du_doan": du,
-                "do_tin_cay": conf,
+                "do_tin_cay": int(conf * 100) if conf <= 1 else int(conf),
                 "accuracy": f"{STATS[game]['correct']}/{STATS[game]['total']}" if STATS[game]['total'] > 0 else "0/0",
                 "history": get_formatted_history(game)
             }
@@ -1380,6 +1459,8 @@ def predict(game, ban="md5"):
         phien_hien_tai = str(raw.get("phien_hien_tai") or raw.get("Phien") or "---")
         if phien_hien_tai == "---" and phien_du_doan.isdigit():
             phien_hien_tai = str(int(phien_du_doan) - 1)
+        elif phien_du_doan == "---" and phien_hien_tai.isdigit():
+            phien_du_doan = str(int(phien_hien_tai) + 1)
 
         phien = phien_hien_tai  # phiên hiện tại để lưu lịch sử
         phien_tiep_theo = phien_du_doan  # phiên đang dự đoán
@@ -1432,7 +1513,7 @@ def predict(game, ban="md5"):
             "xuc_xac": xuc_xac,
             "tong_xuc_xac": tong if tong is not None else 0,
             "du_doan": du,
-            "do_tin_cay": conf,
+            "do_tin_cay": int(conf * 100) if conf <= 1 else int(conf),
             "accuracy": f"{STATS[game]['correct']}/{STATS[game]['total']}" if STATS[game]['total'] > 0 else "0/0",
             "history": get_formatted_history(game)
         }
@@ -1450,7 +1531,7 @@ def predict(game, ban="md5"):
                 "xuc_xac": [0, 0, 0],
                 "tong_xuc_xac": 0,
                 "du_doan": du,
-                "do_tin_cay": conf,
+                "do_tin_cay": int(conf * 100) if conf <= 1 else int(conf),
                 "loai_cau": "Đang tải...",
                 "pattern": "",
                 "accuracy": f"{STATS['lc79']['correct']}/{STATS['lc79']['total']}" if STATS['lc79']['total'] > 0 else "0/0",
@@ -1475,7 +1556,8 @@ def predict(game, ban="md5"):
         
         ket = normalize(raw.get("ket_qua_hien") or raw.get("Ket_qua") or raw.get("ket_qua"))
         if not ket and tong_xuc_xac > 0:
-            ket = "Tài" if tong_xuc_xac > 10 else "Xỉu"
+            # FIX: Dùng >= 11 rõ ràng (Tài = 11-18, Xỉu = 3-10)
+            ket = "Tài" if tong_xuc_xac >= 11 else "Xỉu"
 
         if ket and ket in ["Tài", "Xỉu"]:
             update_prediction_results("lc79", phien, ket)
@@ -1490,8 +1572,8 @@ def predict(game, ban="md5"):
         if phien_tiep_theo:
             phien_tiep_theo = str(phien_tiep_theo)
         else:
-            # Nếu API không có phien_du_doan thì dùng phien hiện tại luôn (không cộng 1)
-            phien_tiep_theo = phien
+            # FIX: Nếu API không có phien_du_doan thì cộng 1 để tránh ghi đè phiên cũ
+            phien_tiep_theo = str(int(phien) + 1) if phien and phien.isdigit() else phien
             
         api_du = normalize(raw.get("du_doan"))
         
@@ -1526,7 +1608,7 @@ def predict(game, ban="md5"):
             "xuc_xac": xuc_xac,
             "tong_xuc_xac": tong_xuc_xac,
             "du_doan": du,
-            "do_tin_cay": conf,
+            "do_tin_cay": int(conf * 100) if conf <= 1 else int(conf),
             "loai_cau": loai_cau,
             "pattern": pattern,
             "phieu_tai": phieu_tai,
@@ -1576,7 +1658,7 @@ def predict(game, ban="md5"):
             "phien": phien,
             "ket_qua": ket or "Đang chờ...",
             "du_doan": du,
-            "do_tin_cay": conf,
+            "do_tin_cay": int(conf * 100) if conf <= 1 else int(conf),
             "accuracy": f"{STATS['sum']['correct']}/{STATS['sum']['total']}" if STATS['sum']['total'] > 0 else "0/0",
             "history": get_formatted_history("sum")
         }
@@ -1634,7 +1716,7 @@ def predict(game, ban="md5"):
             "phien": phien,
             "ket_qua": ket or "Đang chờ...",
             "du_doan": du,
-            "do_tin_cay": conf,
+            "do_tin_cay": int(conf * 100) if conf <= 1 else int(conf),
             "accuracy": f"{STATS['b52']['correct']}/{STATS['b52']['total']}" if STATS['b52']['total'] > 0 else "0/0",
             "history": get_formatted_history("b52")
         }
@@ -1650,13 +1732,11 @@ def predict(game, ban="md5"):
         try:
             xuc_xac = raw.get("xucXac", [])
             total_dice = sum(xuc_xac) if len(xuc_xac) == 3 else 0
-                
+
+            # FIX: Bỏ reset thủ công - deque(maxlen=30) đã tự giới hạn
+            # Reset cũ xóa data TRƯỚC khi append phiên mới → mất 1 phiên mỗi lần reset
             if not LUCK8_TOTALS or total_dice != LUCK8_TOTALS[-1]:
                 LUCK8_TOTALS.append(total_dice)
-                if len(LUCK8_TOTALS) >= 30:
-                    h.clear()
-                    LUCK8_TOTALS.clear()
-                    PREDICTION_HISTORY["luck8"].clear()
         except:
             pass
 
@@ -1696,7 +1776,7 @@ def predict(game, ban="md5"):
             "phien": phien,
             "ket_qua": ket or "Đang chờ...",
             "du_doan": du,
-            "do_tin_cay": conf,
+            "do_tin_cay": int(conf * 100) if conf <= 1 else int(conf),
             "accuracy": f"{STATS['luck8']['correct']}/{STATS['luck8']['total']}" if STATS['luck8']['total'] > 0 else "0/0",
             "history": get_formatted_history("luck8")
         }
