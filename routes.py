@@ -546,11 +546,13 @@ def game(gcode):
 '''
     
     # Inject script vào template (trước </body>)
+    # FIX: Nếu không có </body>, inject trước </html> hoặc thêm vào cuối đúng cách
     if '</body>' in template:
-        template = template.replace('</body>', dynamic_iframe_script + '\n</body>')
+        template = template.replace('</body>', dynamic_iframe_script + '\n</body>', 1)
+    elif '</html>' in template:
+        template = template.replace('</html>', dynamic_iframe_script + '\n</html>', 1)
     else:
-        # Nếu không có </body> thì thêm vào cuối
-        template += dynamic_iframe_script
+        template += '\n' + dynamic_iframe_script
 
     return render_template_string(template)
 
@@ -812,7 +814,7 @@ def api_predict_hit_md5_raw():
             "xuc_xac": xuc_xac,
             "tong_xuc_xac": tong,
             "du_doan": du,
-            "do_tin_cay": conf,
+            "do_tin_cay": int(conf * 100) if conf <= 1 else int(conf),
             "ban": "md5",
             "accuracy": f"{STATS['hit']['correct']}/{STATS['hit']['total']}" if STATS['hit']['total'] > 0 else "0/0",
             "history": get_formatted_history("hit")
@@ -887,7 +889,7 @@ def api_predict_hit_hu_raw():
             "xuc_xac": [0, 0, 0],
             "tong_xuc_xac": 0,
             "du_doan": du,
-            "do_tin_cay": conf,
+            "do_tin_cay": int(conf * 100) if conf <= 1 else int(conf),
             "ban": "hu",
             "loai_cau": loai_cau,
             "pattern": pattern_16,
@@ -908,6 +910,7 @@ def api_predict_hit_hu_raw():
 
 
 @bp.route("/api/predict/<game>")
+@csrf_required
 def api_predict(game):
     # --- KIỂM TRA ĐĂNG NHẬP ---
     if "username" not in session:
@@ -917,11 +920,7 @@ def api_predict(game):
     username = session["username"]
     db = load_db()
 
-    # Kiểm tra có CSRF token không (gọi từ ngoài, không qua web)
-    csrf_token = request.headers.get("X-CSRF-Token", "").strip()
-    if not csrf_token:
-        _alert_crack_attempt(username, request, game)
-        return jsonify({"ok": False, "error": f"⛔ Truy cập không hợp lệ ({username}). Vui lòng dùng qua giao diện chính thức."})
+    # FIX: Bỏ check CSRF thủ công vì đã có @csrf_required decorator xử lý
 
     # Kiểm tra user bị khóa
     if username in db.get("blocked_web_login", []):

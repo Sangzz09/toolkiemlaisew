@@ -7,7 +7,7 @@ from collections import Counter
 import requests
 
 # ================== API GAMES ==================
-API_SUN = "https://apisunw-wspro.onrender.com/api/taixiu/sunwin"
+API_SUN = "https://apisunw-wspro.onrender.com/SUNLON"
 LINK_SUN = "https://web.sunwin.live/?affId=Sunwin"
 API_HIT = "https://apihitclubmd5pro.onrender.com/"
 API_HIT_HU = "https://apihitclubhupro.onrender.com/"
@@ -23,10 +23,11 @@ LOGO_LUCK8 = "https://i.postimg.cc/tg4Pgzzt/IMG-1702.jpg"
 API_SICBO = "https://sicbosunwin.onrender.com/api/sicbo/sunwin"
 LINK_SICBO = "https://web.sunwin.live/?affId=Sunwin"
 LOGO_SICBO = "https://i.postimg.cc/fR36RRwD/IMG-2036.jpg"
-API_789 = "https://api789hix.hacksieucap.pro/taixiuv3"
+API_789 = "https://okle-789sic.onrender.com/predict"
+LINK_789 = "https://play.789club.pl/?affId=789"
 LOGO_789 = "https://i.postimg.cc/43HWjS37/789.webp"
 API_68GB = "https://six8gbsew.onrender.com/all"
-API_68GB_XANH = "https://crack-production-7f42.up.railway.app/api/68gb"
+API_68GB_XANH = "https://toolfreebythomas.fun/api68gb.php"
 LOGO_68GB = "https://i.postimg.cc/zDQVG2DG/OIP.webp"
 API_LC79 = "https://apilc79md5sieucapprosew.onrender.com/"
 LOGO_LC79 = "https://i.postimg.cc/vTSzPJnm/lc79.webp"
