@@ -456,8 +456,16 @@ def api_balance():
         return jsonify({"ok": False, "balance": 0})
     db = load_db()
     username = session["username"]
-    balance = db["users"].get(username, {}).get("balance", 0)
-    return jsonify({"ok": True, "balance": balance})
+    user = db["users"].get(username, {})
+    balance = user.get("balance", 0)
+    
+    # Kiểm tra xem có thông báo cộng tiền nào không
+    notifs = user.get("notifications", [])
+    if notifs:
+        user["notifications"] = []
+        save_db(db)
+        
+    return jsonify({"ok": True, "balance": balance, "notifications": notifs})
 
 
 @bp.route("/game/<gcode>")
@@ -1203,6 +1211,47 @@ def serve_protect_js():
     base_dir = os.path.dirname(os.path.abspath(__file__))
     return send_from_directory(base_dir, "protect.js", mimetype="application/javascript")
 
+
+@bp.after_request
+def inject_notification_script(response):
+    """Tự động nhúng script nhận thông báo Real-time vào tất cả các trang HTML"""
+    if response.status_code == 200 and response.content_type and "text/html" in response.content_type and "username" in session:
+        html = response.get_data(as_text=True)
+        script = """
+<script>
+(function(){
+    if (window._notif_injected) return;
+    window._notif_injected = true;
+    setInterval(function(){
+        fetch('/api/balance', {
+            headers: { 'X-CSRF-Token': 'hidden_by_server' }
+        })
+        .then(r=>r.json()).then(d=>{
+            if(d.ok && d.notifications && d.notifications.length > 0) {
+                d.notifications.forEach(n => {
+                    if(typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            title: n.title, text: n.message, icon: 'success', 
+                            confirmButtonText: 'Tuyệt vời', confirmButtonColor: '#00e6b4'
+                        });
+                    } else {
+                        alert(n.title + '\\n\\n' + n.message);
+                    }
+                });
+                // Tự động cập nhật số dư trên giao diện
+                let els = document.querySelectorAll('.balance, .balance-display, #balance, .so-du');
+                els.forEach(e => { e.innerText = d.balance.toLocaleString('vi-VN') + 'đ'; });
+            }
+        }).catch(e=>{});
+    }, 5000); // Quét thông báo mỗi 5s
+})();
+</script>
+"""
+        if '</body>' in html:
+            response.set_data(html.replace('</body>', script + '</body>', 1))
+        elif '</html>' in html:
+            response.set_data(html.replace('</html>', script + '</html>', 1))
+    return response
 
 def register_routes(app):
     app.register_blueprint(bp)

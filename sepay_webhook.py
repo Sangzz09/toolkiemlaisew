@@ -3,7 +3,7 @@
 # Đặt file này ngang hàng với app.py
 
 import time, json, os, random, string, requests
-from config import load_db, save_db, BOT_TOKEN, ADMIN_ID, _BASE_DIR
+from config import load_db, save_db, BOT_TOKEN, ADMIN_ID, _BASE_DIR, pending_deposits
 
 # ======= CẤU HÌNH NGÂN HÀNG =======
 BANK_NAME    = "MBBank"
@@ -106,9 +106,17 @@ def process_sepay_webhook(payload: dict) -> dict:
 
     # Tìm đơn khớp nội dung CK
     matched_key = matched_order = None
+    content_upper = content.upper()
     for key, order in pending.items():
-        # Chỉ khớp chính xác toàn bộ cụm nội dung (VD: NAP username 12345678)
-        if key.upper() in content.upper():
+        code = order.get("code", "").upper()
+        uname = order.get("username", "").upper()
+        
+        # Khớp an toàn: Nội dung phải chứa đủ MÃ SỐ và TÊN USERNAME (bỏ qua khác biệt về khoảng trắng do ngân hàng)
+        if code and uname and (code in content_upper) and (uname in content_upper):
+            matched_key, matched_order = key, order
+            break
+        # Fallback phụ: Khớp toàn bộ nhưng lược bỏ hết khoảng trắng
+        elif "".join(key.upper().split()) in "".join(content_upper.split()):
             matched_key, matched_order = key, order
             break
 
@@ -133,6 +141,13 @@ def process_sepay_webhook(payload: dict) -> dict:
 
     # Cộng tiền
     db["users"][username]["balance"] = db["users"][username].get("balance", 0) + amount
+    
+    # Thêm thông báo hiển thị cho web popup
+    db["users"][username].setdefault("notifications", []).append({
+        "title": "💰 NẠP TIỀN TỰ ĐỘNG THÀNH CÔNG",
+        "message": f"Hệ thống vừa cộng tự động {amount:,}đ vào tài khoản của bạn.\nSố dư mới: {db['users'][username]['balance']:,}đ"
+    })
+    
     db.setdefault("transactions", []).append({
         "type": "deposit", "username": username, "amount": amount,
         "time": time.time(), "status": "completed", "method": "sepay_auto",
@@ -144,16 +159,21 @@ def process_sepay_webhook(payload: dict) -> dict:
     del pending[matched_key]
     _save(pending)
 
+    # Xóa lệnh chờ duyệt thủ công trên Telegram (tránh admin bị lặp thông báo/duyệt nhầm)
+    keys_to_del = [k for k, v in pending_deposits.items() if v.get("username") == username]
+    for k in keys_to_del:
+        del pending_deposits[k]
+
     new_balance = db["users"][username]["balance"]
 
     # Thông báo admin
     _notify(
-        f"✅ NẠP TIỀN TỰ ĐỘNG\n\n"
-        f"👤 Tài khoản: {username}\n"
+        f"✅ NẠP TIỀN TỰ ĐỘNG THÀNH CÔNG\n\n"
+        f"👤 Tài khoản: {username.upper()}\n"
         f"💰 +{amount:,}đ\n"
         f"💎 Số dư mới: {new_balance:,}đ\n"
-        f"🏦 {gateway} | {acct}\n"
-        f"📝 {content}\n"
+        f"🏦 Ngân hàng: {gateway} | {acct}\n"
+        f"📝 Nội dung CK: {content}\n"
         f"🔖 TxnID: {txn_id} | {txn_date}"
     )
 

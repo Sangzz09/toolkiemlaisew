@@ -186,6 +186,12 @@ async def callback_approve_deposit(update: Update, context: ContextTypes.DEFAULT
     
     # Cộng tiền cho user
     db["users"][username]["balance"] = db["users"][username].get("balance", 0) + amount
+    
+    # Thêm thông báo hiển thị cho web popup
+    db["users"][username].setdefault("notifications", []).append({
+        "title": "💰 NẠP TIỀN THÀNH CÔNG",
+        "message": f"Yêu cầu nạp tiền của bạn đã được duyệt (+{amount:,}đ).\nSố dư mới: {db['users'][username]['balance']:,}đ"
+    })
     print(f"[DEBUG] ✅ Đã cộng tiền. Số dư mới: {db['users'][username]['balance']}")
     
     # Ghi lại giao dịch
@@ -284,8 +290,14 @@ async def cmd_duyet(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"❌ Tài khoản '{username}' không tồn tại!")
         return
 
-    db["users"][username]["balance"] = db["users"][username].get(
-        "balance", 0) + found_deposit["amount"]
+    db["users"][username]["balance"] = db["users"][username].get("balance", 0) + found_deposit["amount"]
+    
+    # Thêm thông báo hiển thị cho web popup
+    db["users"][username].setdefault("notifications", []).append({
+        "title": "💰 NẠP TIỀN THÀNH CÔNG",
+        "message": f"Yêu cầu nạp tiền của bạn đã được duyệt (+{found_deposit['amount']:,}đ).\nSố dư mới: {db['users'][username]['balance']:,}đ"
+    })
+    
     save_db(db)
 
     # Lưu lịch sử giao dịch
@@ -329,6 +341,68 @@ async def cmd_duyet(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                        text=user_msg)
     except Exception as e:
         print(f"Không thể gửi thông báo cho user: {e}")
+
+
+async def cmd_nap(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin cộng tiền trực tiếp cho user"""
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("⛔ Bạn không có quyền sử dụng lệnh này")
+        return
+
+    if len(context.args) < 2:
+        await update.message.reply_text(
+            "❌ Sai cú pháp!\n\nĐúng: /nap <tên_tài_khoản> <số_tiền>\nVí dụ: /nap Minhsang 50000"
+        )
+        return
+
+    username = context.args[0]
+    try:
+        # Hỗ trợ nhập số tiền có dấu phẩy hoặc chấm (vd: 50,000 hoặc 50.000)
+        amount_str = context.args[1].replace(",", "").replace(".", "")
+        amount = int(amount_str)
+    except ValueError:
+        await update.message.reply_text("❌ Số tiền không hợp lệ! Vui lòng nhập số.")
+        return
+
+    if amount <= 0:
+        await update.message.reply_text("❌ Số tiền phải lớn hơn 0.")
+        return
+
+    db = load_db()
+    if username not in db.get("users", {}):
+        await update.message.reply_text(f"❌ Tài khoản '{username}' không tồn tại!")
+        return
+
+    db["users"][username]["balance"] = db["users"][username].get("balance", 0) + amount
+
+    # Thêm thông báo hiển thị cho web popup
+    db["users"][username].setdefault("notifications", []).append({
+        "title": "💰 CỘNG TIỀN THÀNH CÔNG",
+        "message": f"Tài khoản của bạn vừa được Admin cộng thêm {amount:,}đ.\nSố dư mới: {db['users'][username]['balance']:,}đ"
+    })
+
+    # Lưu lịch sử giao dịch
+    transaction = {
+        "type": "deposit",
+        "username": username,
+        "amount": amount,
+        "time": time.time(),
+        "status": "completed",
+        "method": "admin_manual"
+    }
+    db.setdefault("transactions", []).append(transaction)
+    save_db(db)
+
+    now = datetime.now()
+    ngay_gio = now.strftime("%d/%m/%Y %H:%M:%S")
+
+    await update.message.reply_text(
+        f"✅ NẠP TIỀN THỦ CÔNG THÀNH CÔNG\n\n"
+        f"👤 Tài khoản: {username}\n"
+        f"💰 Số tiền cộng: {amount:,}đ\n"
+        f"💵 Số dư mới: {db['users'][username]['balance']:,}đ\n"
+        f"🕐 Ngày giờ: {ngay_gio}"
+    )
 
 
 async def cmd_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1781,6 +1855,7 @@ async def start_bot_async():
         print("✅ Đã đăng ký handler /start")
         bot_app.add_handler(CommandHandler("help", cmd_help))
         bot_app.add_handler(CommandHandler("naptien", cmd_naptien))
+        bot_app.add_handler(CommandHandler("nap", cmd_nap))
         bot_app.add_handler(CommandHandler("duyet", cmd_duyet))
         bot_app.add_handler(CommandHandler("menu", cmd_menu))
         bot_app.add_handler(CommandHandler("key", cmd_key))
