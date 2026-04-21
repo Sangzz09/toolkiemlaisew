@@ -199,6 +199,12 @@ def detect_and_block():
     if request.path.startswith("/static/"):
         return None
 
+    # Bỏ qua chặn nếu là môi trường phát triển (Local)
+    import os
+    real_ip = get_real_ip()
+    if (real_ip in ('127.0.0.1', '::1') or real_ip.startswith('192.168.') or real_ip.startswith('10.')) and os.getenv("FLASK_ENV") == "development":
+        return None
+
     ip = get_real_ip()
 
     # ── 1. KIỂM TRA IP BỊ BAN ─────────────────────────────────────────────
@@ -237,8 +243,9 @@ def detect_and_block():
     username = session.get("username")
     ua       = request.headers.get("User-Agent", "N/A")
     csrf     = request.headers.get("X-CSRF-Token", "").strip()
+    csrf_cookie = request.cookies.get("csrf_token", "").strip()
 
-    if not csrf:
+    if not csrf and not csrf_cookie:
         # Gọi thẳng từ ngoài không qua web (F12 hoặc script)
         save_log(ip, username, request.path, ua)
         send_alert(ip, username, request.path, ua)

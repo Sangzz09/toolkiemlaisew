@@ -64,6 +64,17 @@ def register():
                         "correct_predictions": 0
                     }
                     save_db(db)
+                    
+                    # Gửi thông báo khi có tài khoản mới được tạo
+                    try:
+                        from config import BOT_TOKEN, ADMIN_ID
+                        import requests as req
+                        ip = (request.headers.get("CF-Connecting-IP") or request.headers.get("X-Forwarded-For", "").split(",")[0] or request.remote_addr or "unknown").strip()
+                        msg = f"🆕 TÀI KHOẢN MỚI ĐƯỢC TẠO\n━━━━━━━━━━━━━━━\n👤 Username: {username}\n📡 IP: {ip}\n🕐 Thời gian: {time.strftime('%H:%M:%S %d/%m/%Y')}"
+                        req.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json={"chat_id": ADMIN_ID, "text": msg}, timeout=4)
+                    except Exception as e:
+                        print(f"Lỗi gửi thông báo đk: {e}")
+                        
                     # Tự động chuyển sang trang đăng nhập
                     return redirect(url_for("main.login"))
         except Exception as e:
@@ -424,28 +435,10 @@ def api_security_alert():
         elif "postman" in ua_lower: tool = "Postman"
         else:                       tool = "Trình duyệt"
 
-        t = time.strftime("%H:%M:%S %d/%m/%Y")
-        msg = (
-            f"⚠️ CẢNH BÁO BẢO MẬT\n"
-            f"━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"👤 Tài khoản: {username or '(chưa đăng nhập)'}\n"
-            f"🔍 Lý do: {reason_text}\n"
-            f"🕐 Thời gian: {t}\n\n"
-            f"━━ CHI TIẾT ━━\n"
-            f"📡 IP: {ip}\n"
-            f"🛠️ Công cụ: {tool}\n"
-            f"💻 User-Agent: {ua[:80]}\n\n"
-            f"━━ HÀNH ĐỘNG ━━\n"
-            f"👉 Ban TK: /band {username or 'N/A'}\n"
-            f"👉 Ban IP: /banip {ip}"
-        )
-        requests.post(
-            f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
-            json={"chat_id": ADMIN_ID, "text": msg},
-            timeout=4
-        )
-    except Exception as e:
-        print(f"[SECURITY-ALERT ERROR] {e}")
+        # Đã tắt thông báo rác khi frontend mở DevTools theo yêu cầu
+        pass
+    except Exception:
+        pass
     return jsonify({"ok": True})
 
 
@@ -683,17 +676,6 @@ def enter_key(gcode):
                                   error=error)
 
 
-@bp.route("/api/csrf-token")
-def get_csrf_token():
-    """Trả về CSRF token để call API từ JavaScript"""
-    if "username" not in session:
-        return jsonify({"ok": False, "error": "Chưa đăng nhập"})
-    
-    from security import generate_csrf_token
-    token = generate_csrf_token()
-    return jsonify({"ok": True, "token": token})
-
-
 @bp.route("/api/predict/hit")
 @csrf_required
 def api_predict_hit():
@@ -774,7 +756,7 @@ def api_predict_hit_md5_raw():
         if "phien_du_doan" in raw:
             phien_tiep_theo = str(raw.get("phien_du_doan", "---"))
         else:
-            phien_tiep_theo = str(int(phien) + 1) if phien and phien != "---" and phien.isdigit() else "---"
+            phien_tiep_theo = phien if phien and phien != "---" and phien.isdigit() else "---"
 
         api_du = normalize(raw.get("du_doan") or raw.get("Du_doan"))
         raw_conf = raw.get("do_tin_cay") or raw.get("Do_tin_cay")

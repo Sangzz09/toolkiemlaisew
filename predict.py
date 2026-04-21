@@ -1096,15 +1096,12 @@ def predict(game, ban="md5"):
                 analyze_and_save_cau_patterns(list(h), "sun")
                 print(f"✅ SunWin #{phien}: Lưu kết quả - {ket} | Xúc xắc: {xuc_xac} | Tổng: {tong_xuc_xac}")
 
-        # Dự đoán cho phiên tiếp theo (API phiên + 1)
+        # Dự đoán cho phiên tiếp theo (Lấy trực tiếp từ API, không cộng 1)
         phien_tiep_theo = raw.get("phien_hien_tai") or raw.get("phien_du_doan")
         if phien_tiep_theo:
             phien_tiep_theo = str(phien_tiep_theo)
         else:
-            try:
-                phien_tiep_theo = str(int(phien) + 1) if phien != "---" else "---"
-            except:
-                phien_tiep_theo = "---"
+            phien_tiep_theo = phien
 
         # Luôn truyền dự đoán từ API vào analyze để ưu tiên
         # Nếu api_du_doan là None, analyze() sẽ tự động chạy thuật toán local.
@@ -1232,7 +1229,7 @@ def predict(game, ban="md5"):
             if "phien_du_doan" in raw:
                 phien_tiep_theo = str(raw.get("phien_du_doan", "---"))
             else:
-                phien_tiep_theo = str(int(phien) + 1) if phien and phien != "---" else "---"
+                phien_tiep_theo = phien
             
             api_du = normalize(raw.get("du_doan") or raw.get("Du_doan"))
             raw_conf = raw.get("do_tin_cay") or raw.get("Do_tin_cay")

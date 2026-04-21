@@ -1110,6 +1110,14 @@ async def cmd_unbanip(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception:
         pass
 
+        try:
+            from security import _honeypot_ban
+            if ip in _honeypot_ban:
+                del _honeypot_ban[ip]
+                removed = True
+        except Exception:
+            pass
+
     if removed:
         await update.message.reply_text(f"✅ Đã gỡ ban IP: {ip}")
     else:
@@ -1646,10 +1654,13 @@ async def cmd_lichsu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Hiển thị phiên hiện tại từ API
     next_session = "---"
     if current_session != "---":
-        try:
-            next_session = str(int(current_session) + 1)
-        except:
+        if game in ["sun", "hit", "hit-hu"]:
             next_session = current_session
+        else:
+            try:
+                next_session = str(int(current_session) + 1)
+            except:
+                next_session = current_session
 
     msg = f"""📊 THỐNG KÊ SHOP MINHSANG - {game_name.upper()}
 
