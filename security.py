@@ -39,9 +39,13 @@ def generate_csrf_token() -> str:
     return hmac.new(SECRET.encode(), raw.encode(), hashlib.sha256).hexdigest()
 
 def verify_csrf_token() -> bool:
-    token = request.headers.get("X-CSRF-Token", "").strip()
-    if not token or len(token) != 64:
+    token = request.cookies.get("csrf_token", "").strip()
+    if not token:
+        token = request.headers.get("X-CSRF-Token", "").strip()
+        
+    if not token or token == "hidden_by_server":
         return False
+        
     username = session.get("username", "anon")
     sid  = session.get("_sid", SECRET[:8])
     # Chấp nhận slot hiện tại và slot trước (tránh expire giữa chừng)
@@ -132,7 +136,7 @@ def check_honeypot() -> bool:
             _honeypot_hits[ip] += 1
             _honeypot_ban[ip] = time.time() + 86400  # ban 24h
             print(f"[HONEYPOT] Bẫy được: {ip} → {path}")
-            _notify_admin(ip, f"Honeypot: {path}")
+                # _notify_admin(ip, f"Honeypot: {path}") # Tắt thông báo rác
             return True
 
     return False
@@ -195,13 +199,13 @@ def api_protected(f):
         # 2. Rate limit
         if check_rate_limit():
             ip = request.remote_addr
-            _notify_admin(ip, "Rate limit vượt ngưỡng")
+            # _notify_admin(ip, "Rate limit vượt ngưỡng") # Tắt thông báo
             return jsonify(RATE_BLOCKED), 429
 
         # 3. CSRF token (chặn curl/python-requests không có token)
         if not verify_csrf_token():
             ip = request.remote_addr
-            _notify_admin(ip, "CSRF token sai/thiếu - " + request.path)
+            # _notify_admin(ip, "CSRF token sai/thiếu - " + request.path) # Tắt thông báo
             return jsonify(BLOCKED), 403
 
         return f(*args, **kwargs)
@@ -241,7 +245,11 @@ def register_security(app):
         if session.get("_fp") and not verify_session_fingerprint():
             session.clear()
             return jsonify({"ok": False, "error": "Phiên hết hạn"}), 401
-        return jsonify({"ok": True, "token": generate_csrf_token(), "ttl": TOKEN_TTL})
+            
+            token = generate_csrf_token()
+            res = jsonify({"ok": True, "token": "hidden_by_server", "ttl": TOKEN_TTL})
+            res.set_cookie("csrf_token", token, httponly=True, samesite="Lax")
+            return res
 
     app.register_blueprint(bp)
 
