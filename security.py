@@ -245,11 +245,11 @@ def register_security(app):
         if session.get("_fp") and not verify_session_fingerprint():
             session.clear()
             return jsonify({"ok": False, "error": "Phiên hết hạn"}), 401
-            
-            token = generate_csrf_token()
-            res = jsonify({"ok": True, "token": "hidden_by_server", "ttl": TOKEN_TTL})
-            res.set_cookie("csrf_token", token, httponly=True, samesite="Lax")
-            return res
+        
+        token = generate_csrf_token()
+        res = jsonify({"ok": True, "token": "hidden_by_server", "ttl": TOKEN_TTL})
+        res.set_cookie("csrf_token", token, httponly=True, samesite="Lax")
+        return res
 
     app.register_blueprint(bp)
 
