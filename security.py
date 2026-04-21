@@ -39,12 +39,18 @@ def generate_csrf_token() -> str:
     return hmac.new(SECRET.encode(), raw.encode(), hashlib.sha256).hexdigest()
 
 def verify_csrf_token() -> bool:
-    token = request.cookies.get("csrf_token", "").strip()
-    if not token:
-        token = request.headers.get("X-CSRF-Token", "").strip()
-        
-    if not token or token == "hidden_by_server":
+    header_token = request.headers.get("X-CSRF-Token", "").strip()
+    cookie_token = request.cookies.get("csrf_token", "").strip()
+    
+    # Bắt buộc phải có header từ frontend (ngăn chặn gõ URL trực tiếp)
+    if not header_token:
         return False
+        
+    token = header_token
+    if header_token == "hidden_by_server":
+        if not cookie_token:
+            return False
+        token = cookie_token
         
     username = session.get("username", "anon")
     sid  = session.get("_sid", SECRET[:8])
@@ -175,7 +181,7 @@ def _notify_admin(ip: str, reason: str):
 # ══════════════════════════════════════════════════════════════
 # DECORATORS
 # ══════════════════════════════════════════════════════════════
-BLOCKED = {"ok": False, "error": "tuổi đéll mà đòi lấy 🖕", "code": 403}
+BLOCKED = {"ok": False, "error": "tuổi cak crack api!bố band @sewdangcap", "code": 403}
 RATE_BLOCKED = {"ok": False, "error": "Quá nhiều request. Thử lại sau.", "code": 429}
 
 def api_protected(f):

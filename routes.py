@@ -99,6 +99,11 @@ def login():
         if username in db["users"]:
             if db["users"][username]["password"] == hash_password(password):
                 session["username"] = username
+                
+                # Cập nhật thời gian đăng nhập cuối
+                db["users"][username]["last_login"] = time.time()
+                save_db(db)
+                
                 set_session_fingerprint()
                 return redirect(url_for("main.menu"))
             else:

@@ -1375,6 +1375,41 @@ async def auto_backup(context):
     users = db.get("users", {})
     transactions = db.get("transactions", [])
 
+    # --- TỰ ĐỘNG XÓA TÀI KHOẢN KHÔNG ĐĂNG NHẬP SAU 30 NGÀY ---
+    now = time.time()
+    users_to_delete = []
+    for uname, u in users.items():
+        last_active = u.get("last_login", u.get("created_at", 0))
+        if now - last_active > 30 * 86400:  # 30 ngày
+            users_to_delete.append(uname)
+            
+    if users_to_delete:
+        for uname in users_to_delete:
+            del users[uname]
+            if uname in db.get("active", {}):
+                del db["active"][uname]
+            if uname in db.get("blocked_web_login", []):
+                db["blocked_web_login"].remove(uname)
+            for key in db.get("shop_keys", []):
+                if key.get("usedBy") == uname:
+                    key["usedBy"] = None
+                    key["status"] = "available"
+        if "transactions" in db:
+            db["transactions"] = [t for t in db["transactions"] if t.get("username") not in users_to_delete]
+        save_db(db)
+        print(f"[AUTO-CLEAN] Đã tự động xóa {len(users_to_delete)} tài khoản không đăng nhập quá 30 ngày.")
+        
+        try:
+            deleted_names = ", ".join(users_to_delete[:15]) + ("..." if len(users_to_delete) > 15 else "")
+            msg = (
+                f"🗑️ <b>TỰ ĐỘNG DỌN DẸP TÀI KHOẢN</b>\n\n"
+                f"Đã xóa vĩnh viễn <b>{len(users_to_delete)}</b> tài khoản rác (không đăng nhập > 30 ngày).\n"
+                f"👤 Danh sách: <i>{deleted_names}</i>"
+            )
+            await context.bot.send_message(chat_id=ADMIN_ID, text=msg, parse_mode='HTML')
+        except Exception as e:
+            print(f"[AUTO-CLEAN] Lỗi gửi thông báo Telegram: {e}")
+
     export_data = {
         "exported_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "loai": "auto_backup_hang_ngay",
