@@ -67,6 +67,8 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"  /block <code> — Khóa key\n"
                 f"  /huykey <code> — Hủy key\n\n"
                 f"💰 NẠP TIỀN\n"
+                f"  /nap <user> <tiền> — Cộng tiền\n"
+                f"  /tru <user> <tiền> — Trừ tiền\n"
                 f"  /duyet <user> — Duyệt nạp\n"
                 f"  /doanhthu — Doanh thu\n\n"
                 f"👤 QUẢN LÝ USER\n"
@@ -93,9 +95,15 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # ── USER THƯỜNG TRONG NHÓM ─────────────────────────
             msg = (
                 f"👋 Chào mừng bạn đến với bot của {SHOP_NAME}!\n\n"
-                f"Sử dụng lệnh /naptien để xem hướng dẫn nạp tiền."
+                f"🎯 <b>CÔNG DỤNG CỦA WEB:</b>\n"
+                f"• Cung cấp công cụ dự đoán AI siêu chuẩn xác cho các cổng game.\n"
+                f"• Phân tích thuật toán, soi cầu bằng Machine Learning.\n"
+                f"• Hỗ trợ đa nền tảng: SunWin, HitClub, 68GB, v.v.\n"
+                f"• Tự động cập nhật kết quả realtime."
             )
-            await update.message.reply_text(msg)
+            keyboard = [[InlineKeyboardButton("🌐 Truy cập Web", url="https://toolkiemlaisew.site"), InlineKeyboardButton("👨‍💻 Liên hệ Admin", url="https://t.me/sewdangcap")]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await update.message.reply_text(msg, reply_markup=reply_markup, parse_mode='HTML')
         else:
             # ── USER THƯỜNG TRONG CHAT RIÊNG ───────────────────
             await update.message.reply_text("⛔ Bot chỉ hoạt động trong nhóm. Vui lòng thêm bot vào một nhóm để sử dụng.")
@@ -115,6 +123,7 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "━━━━━━━━━━━━━━━━━━━━\n"
             "💰 NẠP TIỀN & KEY:\n"
             "/nap <user> <tiền> - Tạo lệnh nạp\n"
+            "/tru <user> <tiền> - Trừ tiền tài khoản\n"
             "/duyet <user> - Duyệt nạp tiền\n"
             "/key <1d|1t|1thang|vv> - Tạo key\n"
             "/list - Danh sách key\n"
@@ -142,7 +151,7 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif is_group:
         await update.message.reply_text(
             "📖 <b>HƯỚNG DẪN SỬ DỤNG</b>\n\n"
-            "Gõ lệnh /naptien để nhận thông tin và hướng dẫn nạp tiền vào tài khoản web của bạn.",
+            "Chào mừng bạn đến với bot hỗ trợ.",
             parse_mode='HTML')
     else:
         await update.message.reply_text(
@@ -209,39 +218,40 @@ async def callback_approve_deposit(update: Update, context: ContextTypes.DEFAULT
     await query.answer(f"✅ Đã duyệt nạp {amount:,}đ cho {username}!", show_alert=True)
     
     # Sửa tin nhắn để hiển thị trạng thái đã duyệt
-    await query.edit_message_text(
-        f"✅ XÁC NHẬN CHUYỂN KHOẢN (Telegram)\n\n"
+    new_text = (
+        f"✅ XÁC NHẬN CHUYỂN KHOẢN (Web)\n\n"
         f"🎮 Tài khoản: {username}\n"
         f"💵 Số tiền: {amount:,}đ\n\n"
-        f"✅ ĐƠNHÀNG ĐÃ ĐƯỢC DUYỆT!")
+        f"✅ ĐƠN HÀNG ĐÃ ĐƯỢC DUYỆT!"
+    )
+    try:
+        if query.message.photo or query.message.document:
+            await query.edit_message_caption(caption=new_text)
+        else:
+            await query.edit_message_text(text=new_text)
+    except Exception as e:
+        print(f"[DEBUG] Lỗi edit message: {e}")
     
     # Xóa yêu cầu nạp sau khi duyệt
     del pending_deposits[short_id]
     print(f"[DEBUG] ✅ Đã xóa pending_deposits[{short_id}]")
 
-
-async def cmd_naptien(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Gửi thông tin nạp tiền vào nhóm."""
-    if update.message.chat.type not in ["group", "supergroup"]:
-        await update.message.reply_text("Lệnh này chỉ hoạt động trong nhóm. Vui lòng sử dụng trong nhóm chat.")
-        return
-
-    from config import SHOP_NAME
-    from sepay_webhook import BANK_ACCOUNT, BANK_OWNER
-
-    msg = (
-        f"✅ <b>HƯỚNG DẪN NẠP TIỀN - {SHOP_NAME}</b>\n\n"
-        f"Để nạp tiền vào tài khoản, vui lòng chuyển khoản với nội dung sau:\n\n"
-        f"📝 <b>Nội dung:</b> <code>NAP [Tên tài khoản của bạn]</code>\n"
-        f"<i>(Ví dụ: NAP minhsang)</i>\n\n"
-        f"📋 <b>THÔNG TIN CHUYỂN KHOẢN:</b>\n"
-        f"🏦 Ngân hàng: <b>MB Bank</b>\n"
-        f"💳 STK: <code>{BANK_ACCOUNT}</code>\n"
-        f"👤 Tên: <b>{BANK_OWNER}</b>\n\n"
-        f"Sau khi chuyển khoản, hệ thống sẽ tự động cộng tiền nếu bạn ghi đúng tên tài khoản trong nội dung."
-    )
-    await update.message.reply_text(msg, parse_mode='HTML')
-
+    # Thông báo group (nếu có cấu hình)
+    try:
+        import config
+        if hasattr(config, 'GROUP_ID') and config.GROUP_ID:
+            now = datetime.now()
+            ngay_gio = now.strftime("%d/%m/%Y %H:%M:%S")
+            group_msg = (
+                f"🎉 BÙM! KHÁCH NẠP TIỀN THÀNH CÔNG!\n\n"
+                f"👤 Tài khoản: {username[:3]}***\n"
+                f"💰 Số tiền nạp: +{amount:,}đ\n"
+                f"🕐 Thời gian: {ngay_gio}\n\n"
+                f"🚀 Cảm ơn bạn đã tin tưởng và ủng hộ!"
+            )
+            await context.bot.send_message(chat_id=config.GROUP_ID, text=group_msg)
+    except Exception:
+        pass
 
 async def cmd_duyet(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
@@ -342,6 +352,19 @@ async def cmd_duyet(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         print(f"Không thể gửi thông báo cho user: {e}")
 
+    try:
+        import config
+        if hasattr(config, 'GROUP_ID') and config.GROUP_ID:
+            group_msg = (
+                f"🎉 BÙM! KHÁCH NẠP TIỀN THÀNH CÔNG!\n\n"
+                f"👤 Tài khoản: {username[:3]}***\n"
+                f"💰 Số tiền nạp: +{found_deposit['amount']:,}đ\n"
+                f"🕐 Thời gian: {ngay_gio}\n\n"
+                f"🚀 Cảm ơn bạn đã tin tưởng và ủng hộ!"
+            )
+            await context.bot.send_message(chat_id=config.GROUP_ID, text=group_msg)
+    except Exception:
+        pass
 
 async def cmd_nap(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Admin cộng tiền trực tiếp cho user"""
@@ -404,6 +427,88 @@ async def cmd_nap(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🕐 Ngày giờ: {ngay_gio}"
     )
 
+    try:
+        import config
+        if hasattr(config, 'GROUP_ID') and config.GROUP_ID:
+            group_msg = (
+                f"🎉 BÙM! KHÁCH NẠP TIỀN THÀNH CÔNG!\n\n"
+                f"👤 Tài khoản: {username[:3]}***\n"
+                f"💰 Số tiền nạp: +{amount:,}đ\n"
+                f"🕐 Thời gian: {ngay_gio}\n\n"
+                f"🚀 Cảm ơn bạn đã tin tưởng và ủng hộ!"
+            )
+            await context.bot.send_message(chat_id=config.GROUP_ID, text=group_msg)
+    except Exception:
+        pass
+
+
+async def cmd_tru(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin trừ tiền trực tiếp của user"""
+    if update.effective_user.id != ADMIN_ID:
+        await update.message.reply_text("⛔ Bạn không có quyền sử dụng lệnh này")
+        return
+
+    if len(context.args) < 2:
+        await update.message.reply_text(
+            "❌ Sai cú pháp!\n\nĐúng: /tru <tên_tài_khoản> <số_tiền>\nVí dụ: /tru Minhsang 50000"
+        )
+        return
+
+    username = context.args[0]
+    try:
+        # Hỗ trợ nhập số tiền có dấu phẩy hoặc chấm (vd: 50,000 hoặc 50.000)
+        amount_str = context.args[1].replace(",", "").replace(".", "")
+        amount = int(amount_str)
+    except ValueError:
+        await update.message.reply_text("❌ Số tiền không hợp lệ! Vui lòng nhập số.")
+        return
+
+    if amount <= 0:
+        await update.message.reply_text("❌ Số tiền phải lớn hơn 0.")
+        return
+
+    db = load_db()
+    if username not in db.get("users", {}):
+        await update.message.reply_text(f"❌ Tài khoản '{username}' không tồn tại!")
+        return
+
+    current_balance = db["users"][username].get("balance", 0)
+    if current_balance < amount:
+        deducted_amount = current_balance
+        db["users"][username]["balance"] = 0
+    else:
+        deducted_amount = amount
+        db["users"][username]["balance"] -= amount
+
+    # Thêm thông báo hiển thị cho web popup
+    db["users"][username].setdefault("notifications", []).append({
+        "title": "💸 TRỪ TIỀN",
+        "message": f"Tài khoản của bạn vừa bị Admin trừ {deducted_amount:,}đ.\nSố dư mới: {db['users'][username]['balance']:,}đ"
+    })
+
+    # Lưu lịch sử giao dịch
+    transaction = {
+        "type": "deduct",
+        "username": username,
+        "amount": deducted_amount,
+        "time": time.time(),
+        "status": "completed",
+        "method": "admin_manual"
+    }
+    db.setdefault("transactions", []).append(transaction)
+    save_db(db)
+
+    now = datetime.now()
+    ngay_gio = now.strftime("%d/%m/%Y %H:%M:%S")
+
+    await update.message.reply_text(
+        f"✅ TRỪ TIỀN THỦ CÔNG THÀNH CÔNG\n\n"
+        f"👤 Tài khoản: {username}\n"
+        f"💸 Số tiền trừ: {deducted_amount:,}đ\n"
+        f"💵 Số dư mới: {db['users'][username]['balance']:,}đ\n"
+        f"🕐 Ngày giờ: {ngay_gio}"
+    )
+
 
 async def cmd_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
@@ -416,6 +521,8 @@ async def cmd_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/key vv - Tạo key vĩnh viễn\n"
         "/list - Xem tất cả key\n"
         "/block <key> - Khóa key\n"
+        "/nap <username> <tiền> - Cộng tiền\n"
+        "/tru <username> <tiền> - Trừ tiền\n"
         "/duyet <username> - Duyệt nạp tiền\n"
         "/band <username> - Khóa đăng nhập web\n"
         "/unband <username> - Mở khóa đăng nhập web\n"
@@ -785,6 +892,7 @@ async def cmd_doanhthu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     def calc_stats(start_time, end_time=None):
         nap = 0
         mua = 0
+        tru = 0
         for t in transactions:
             if t.get("status") == "completed":
                 tx_time = t.get("time", 0)
@@ -793,20 +901,22 @@ async def cmd_doanhthu(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         nap += t.get("amount", 0)
                     elif t.get("type") == "buy_key":
                         mua += t.get("amount", 0)
-        return nap, mua
+                    elif t.get("type") == "deduct":
+                        tru += t.get("amount", 0)
+        return nap, mua, tru
 
-    nap_day, mua_day = calc_stats(start_of_today)
-    nap_month, mua_month = calc_stats(start_of_month)
-    nap_total, mua_total = calc_stats(0)
+    nap_day, mua_day, tru_day = calc_stats(start_of_today)
+    nap_month, mua_month, tru_month = calc_stats(start_of_month)
+    nap_total, mua_total, tru_total = calc_stats(0)
 
     title = f"💰 DOANH THU: {target_user.upper()}" if target_user else "💰 THỐNG KÊ DOANH THU"
 
     msg = (
         f"{title}\n"
         f"━━━━━━━━━━━━━━━━━━\n\n"
-        f"📅 HÔM NAY:\n • Thu vào: {nap_day:,}đ\n • Mua key: {mua_day:,}đ\n\n"
-        f"🗓️ THÁNG NÀY:\n • Thu vào: {nap_month:,}đ\n • Mua key: {mua_month:,}đ\n\n"
-        f"🌍 TỔNG CỘNG:\n • Tổng thu: {nap_total:,}đ\n • Tổng mua: {mua_total:,}đ"
+        f"📅 HÔM NAY:\n • Thu vào: {nap_day:,}đ\n • Mua key: {mua_day:,}đ\n • Trừ thủ công: {tru_day:,}đ\n\n"
+        f"🗓️ THÁNG NÀY:\n • Thu vào: {nap_month:,}đ\n • Mua key: {mua_month:,}đ\n • Trừ thủ công: {tru_month:,}đ\n\n"
+        f"🌍 TỔNG CỘNG:\n • Tổng thu: {nap_total:,}đ\n • Tổng mua: {mua_total:,}đ\n • Tổng trừ: {tru_total:,}đ"
     )
 
     await update.message.reply_text(msg)
@@ -845,6 +955,7 @@ async def cmd_tong(update: Update, context: ContextTypes.DEFAULT_TYPE):
     transactions = db.get("transactions", [])
     total_deposit = sum(t.get("amount", 0) for t in transactions if t.get("type") == "deposit" and t.get("status") == "completed")
     total_buy_key = sum(t.get("amount", 0) for t in transactions if t.get("type") == "buy_key" and t.get("status") == "completed")
+    total_deduct = sum(t.get("amount", 0) for t in transactions if t.get("type") == "deduct" and t.get("status") == "completed")
 
     # Danh sách user và số dư
     user_list = ""
@@ -881,6 +992,7 @@ async def cmd_tong(update: Update, context: ContextTypes.DEFAULT_TYPE):
 ━━━━━━━━━━━━━━━━━━
 • Tổng nạp vào: {total_deposit:,}đ
 • Tổng mua key: {total_buy_key:,}đ
+• Tổng admin trừ: {total_deduct:,}đ
 • Số dư còn lại (users): {total_balance:,}đ
 
 👥 NGƯỜI DÙNG:
@@ -1854,8 +1966,8 @@ async def start_bot_async():
         bot_app.add_handler(CommandHandler("start", cmd_start))
         print("✅ Đã đăng ký handler /start")
         bot_app.add_handler(CommandHandler("help", cmd_help))
-        bot_app.add_handler(CommandHandler("naptien", cmd_naptien))
         bot_app.add_handler(CommandHandler("nap", cmd_nap))
+        bot_app.add_handler(CommandHandler("tru", cmd_tru))
         bot_app.add_handler(CommandHandler("duyet", cmd_duyet))
         bot_app.add_handler(CommandHandler("menu", cmd_menu))
         bot_app.add_handler(CommandHandler("key", cmd_key))
@@ -1893,7 +2005,7 @@ async def start_bot_async():
             print("⚠️ job_queue không khả dụng - bỏ qua auto backup (cài 'pip install python-telegram-bot[job-queue]' để bật)")
 
         # Thêm callback handler cho button xác nhận chuyển khoản và duyệt đơn
-        # bot_app.add_handler(CallbackQueryHandler(callback_approve_deposit, pattern="^approve_")) # Đã loại bỏ
+        bot_app.add_handler(CallbackQueryHandler(callback_approve_deposit, pattern="^approve_"))
 
         # Thêm message handler SAU command handlers với ưu tiên thấp hơn
         bot_app.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND,

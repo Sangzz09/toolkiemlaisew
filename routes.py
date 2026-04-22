@@ -185,6 +185,21 @@ def account():
             if trans.get("username") == username:
                 trans_copy = trans.copy()
                 trans_copy["time_str"] = vn_date_str(trans["time"])
+                
+                # Bổ sung các biến định dạng để hiển thị ra frontend dễ dàng
+                t_type = trans_copy.get("type")
+                if t_type == "deposit":
+                    trans_copy["type_name"] = "Nạp tiền"
+                    trans_copy["amount_display"] = f"+{trans_copy.get('amount', 0):,}đ"
+                elif t_type == "buy_key":
+                    trans_copy["type_name"] = "Mua key"
+                    trans_copy["amount_display"] = f"-{trans_copy.get('amount', 0):,}đ"
+                elif t_type == "deduct":
+                    trans_copy["type_name"] = "Admin trừ tiền"
+                    trans_copy["amount_display"] = f"-{trans_copy.get('amount', 0):,}đ"
+                    trans_copy["key_code"] = "ADMIN-DEDUCT"  # Tránh lỗi nếu account.html yêu cầu gọi key_code
+                    trans_copy["key_type"] = "Trừ thủ công"
+                
                 user_transactions.append(trans_copy)
         # Sắp xếp theo thời gian mới nhất
         user_transactions.sort(key=lambda x: x["time"], reverse=True)
@@ -1093,11 +1108,22 @@ def confirm_deposit():
         session.clear()
         return jsonify({"ok": False, "error": "Tài khoản của bạn đã bị khóa."})
 
-    data = request.get_json()
-    amount = data.get("amount")
+    # Hỗ trợ nhận cả JSON và Form Data (có file ảnh bill)
+    if request.is_json:
+        data = request.get_json()
+        amount = data.get("amount")
+        bill_file = None
+    else:
+        amount = request.form.get("amount")
+        bill_file = request.files.get("bill")
+
+    try:
+        amount = int(amount)
+    except (ValueError, TypeError):
+        return jsonify({"ok": False, "error": "Số tiền không hợp lệ"})
 
     if not amount or amount <= 0:
-        return jsonify({"ok": False, "error": "Invalid amount"})
+        return jsonify({"ok": False, "error": "Số tiền phải lớn hơn 0"})
 
     user_id = session.get("user_id",
                           "unknown")  # Assuming user_id is stored in session
@@ -1122,9 +1148,22 @@ def confirm_deposit():
                          f"User đã xác nhận chuyển khoản qua web!\n\n"
                          f"Duyệt: /duyet {username}")
             
-            # Sử dụng requests để gửi tin nhắn tránh lỗi event loop
-            requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", 
-                          json={"chat_id": ADMIN_ID, "text": admin_msg})
+            inline_keyboard = {
+                "inline_keyboard": [
+                    [{"text": "✅ Duyệt Đơn", "callback_data": f"approve_{deposit_id}"}]
+                ]
+            }
+
+            # Nếu người dùng có upload ảnh bill
+            if bill_file and bill_file.filename:
+                files = {'photo': (bill_file.filename, bill_file.read(), bill_file.content_type)}
+                data_payload = {'chat_id': ADMIN_ID, 'caption': admin_msg, 'reply_markup': json.dumps(inline_keyboard)}
+                requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto", 
+                              data=data_payload, files=files)
+            else:
+                # Gửi tin nhắn text bình thường nếu không có bill đính kèm
+                requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", 
+                              json={"chat_id": ADMIN_ID, "text": admin_msg, "reply_markup": inline_keyboard})
         except Exception as e:
             print(f"Error sending to admin: {e}")
 
